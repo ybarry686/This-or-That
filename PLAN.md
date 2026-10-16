@@ -1,0 +1,77 @@
+# Development Plan — This or That
+
+Product requirements live in [SPEC.md](SPEC.md). This file tracks delivery order and status. Each milestone must meet the Definition of Done (SPEC §14) before the next one starts.
+
+**Current milestone:** M0 — not started
+
+## M0 — Scaffold
+**Goal:** an empty but runnable monorepo.
+
+- [ ] `backend/`: FastAPI app managed with `uv`, `/health` endpoint, pytest set up.
+- [ ] `frontend/`: Vite + React + TS app managed with `pnpm`, Tailwind, vitest set up.
+- [ ] `docker-compose.yml` with `api`, `postgres`, `web`; `.env.example` (no secrets committed).
+- [ ] SQLAlchemy + Alembic wired to Postgres with an initial empty migration.
+- [ ] OpenAPI → TypeScript type generation script.
+- [ ] CI runs backend and frontend tests and lint.
+- [ ] CLAUDE.md "Commands" section filled in.
+
+**Acceptance:** `docker compose up` serves the web app, which calls `/health` successfully; CI is green.
+
+## M1 — Tournament engine
+**Goal:** pure, fully tested bracket logic with no I/O (SPEC §5 normalization, §6, §7 tallying, §8 fallback).
+
+- [ ] Option normalization and duplicate merging, keeping attribution.
+- [ ] Bracket generation from N contenders (2–64) using a seeded shuffle.
+- [ ] Bye placement: round 1 only, spread evenly, at most one per contender.
+- [ ] Matchup order (one at a time) and winner advancement; reject double advancement.
+- [ ] Tally resolution: winner, tie → revote, tie again → coin flip (injectable RNG).
+- [ ] Champion detection.
+
+**Acceptance:** unit and property tests cover every N from 2 to 64, reproducible brackets for the same seed, and no invalid state transitions.
+
+## M2 — Rooms, identity, lobby
+**Goal:** people can create/join rooms and submit options in real time (SPEC §3, §4, §5, §9).
+
+- [ ] DB models and migrations: rooms, participants, submissions, contenders.
+- [ ] Create room (returns participant token and one-time host-recovery link); join by code/URL with nickname rules.
+- [ ] Token auth on REST and WS; hashed tokens; host-only authorization.
+- [ ] Settings CRUD with validated ranges; locked after start.
+- [ ] Submissions with limits, normalization/auto-merge, and hidden-until-start visibility; host merge/remove.
+- [ ] Snapshot endpoint and WS events with monotonic room `version`; client resync on gap/reconnect.
+- [ ] Host transfer (manual, plus lobby auto-transfer after 2 min disconnected).
+- [ ] Frontend: landing/create, join, lobby screens (functional styling).
+
+**Acceptance:** two browsers can create/join, submit, and see consistent lobby state through reloads and reconnects; API tests cover permissions and validation.
+
+## M3 — Live voting & matchup flow
+**Goal:** play a full tournament from start to champion (SPEC §6–§8).
+
+- [ ] Start tournament: freeze contenders, generate the bracket from the stored seed, bracket-drop event.
+- [ ] Matchup lifecycle with server-owned `ends_at` timers.
+- [ ] Voting: one per participant, changeable until close, eligibility and late joins.
+- [ ] Close rules: all connected voted / timer / host force — idempotent resolution.
+- [ ] Tie revote (15 s) and coin flip.
+- [ ] Round advancement and champion; room → `finished`.
+- [ ] Timer recovery after a server restart.
+- [ ] Frontend: matchup screen with voted-progress, bracket view, revote/coin-flip, champion screen.
+
+**Acceptance:** a tournament with byes, ties, disconnects, and late joiners completes correctly; concurrency tests show no double votes or double resolutions.
+
+## M4 — Arcade polish & results
+**Goal:** the retro arcade experience (SPEC §10) and post-game features (SPEC §4 lifecycle).
+
+- [ ] Visual system: arcade heading font, body font, palette, CRT effect with toggle.
+- [ ] Animations: ROUND/FIGHT intros, VS slam, KO tally reveal, bracket progression, champion confetti.
+- [ ] 8-bit SFX and chiptune, muted by default, with an audio toggle.
+- [ ] Reduced-motion variants, keyboard voting, mobile layouts, graceful asset failure.
+- [ ] Read-only results page (30-day retention); idle lobby expiry (24 h); Play again.
+- [ ] Playwright end-to-end test of a full game.
+
+**Acceptance:** a full game is playable on mobile and desktop with the motion/audio settings honored; the results link works after the game ends.
+
+## v2 — Later
+- Tiebreaker mini-games: reaction-time, persuasion (SPEC §8).
+- Image options.
+- Public rooms and discovery.
+- Shared presenter / "TV" view.
+- Hosting provider selection and production deploy.
