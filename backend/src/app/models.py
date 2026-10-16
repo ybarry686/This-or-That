@@ -55,7 +55,6 @@ class Room(Base):
         ),
         default=None,
     )
-    host_recovery_hash: Mapped[str | None] = mapped_column(String(64), default=None)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
@@ -86,6 +85,8 @@ class Participant(Base):
     nickname: Mapped[str] = mapped_column(String(20))
     avatar: Mapped[int] = mapped_column(Integer)
     token_hash: Mapped[str] = mapped_column(String(64), unique=True)
+    # Set only on the room creator: lets them reclaim the host role from any device.
+    recovery_hash: Mapped[str | None] = mapped_column(String(64), unique=True, default=None)
     joined_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
     room: Mapped[Room] = relationship(foreign_keys=[room_id], back_populates="participants")
