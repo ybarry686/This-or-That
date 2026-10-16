@@ -61,7 +61,7 @@ No accounts in v1.
 - **Establishment:** when someone creates or joins a room, the server issues a random, unguessable **participant token** scoped to that room. The client stores it in `localStorage` and sends it on every REST request and when opening the WebSocket. Tokens are stored hashed server-side.
 - **Reconnect:** a client holding a valid token is reattached to the same participant record (nickname, submissions, votes).
 - **Host protection:** host-only actions are authorized server-side by checking that the token belongs to the room's current host.
-- **Host recovery:** at room creation the host is shown a private **host-recovery link** exactly once. Opening it on any device re-binds the host role to that device.
+- **Host recovery:** at room creation the host is shown a private **host-recovery link** exactly once (`/r/<code>/recover#<token>`; the token stays in the URL fragment so it never reaches server logs). Opening it on any device issues a fresh token for the room creator's participant (revoking the old one) and makes them host again, even if the role had been transferred. The link stays valid for reuse.
 - **Lost storage:** a participant who loses their token rejoins as a new participant. Their old record stays (and counts as disconnected).
 
 ### Host absence
@@ -99,6 +99,7 @@ Participants submit options during the lobby phase.
 - Options are **text-only** in v1: 1–80 characters after trimming.
 - Validation happens on the backend; per-participant limits are enforced server-side.
 - Submissions are **hidden** from participants during the lobby: each sees their own submissions and the total count. The host sees all submissions for curation. The full field is revealed with a "bracket drop" animation when the tournament starts.
+- Participants may delete their own submissions during the lobby.
 - Submissions are rejected once the tournament starts.
 - The host can start the tournament only when there are **2–64 unique options**. Below 2 the start action is disabled with an explanation. Above 64, further submissions are rejected.
 
@@ -109,7 +110,7 @@ A submission's normalized key is computed by:
 3. Case-folding.
 4. Stripping trailing punctuation.
 
-Submissions with the same normalized key **auto-merge** into one contender. The contender keeps the display text of the first submission and records **every submitter** (attribution is never lost). The host can also manually merge or remove contenders in the lobby.
+Submissions with the same normalized key **auto-merge** into one contender. The contender keeps the display text of the first submission and records **every submitter** (attribution is never lost). The host can also manually merge or remove contenders in the lobby. A manual merge is sticky: a later submission whose text matches a merged-away option joins the merged contender.
 
 ## 6. Tournament Engine
 
@@ -159,7 +160,8 @@ Tiebreakers will become separate, modular game modes, each specifying inputs, el
 - **Authoritative source:** the backend. State lives in PostgreSQL; a single API process holds the live WebSocket connections.
 - **Snapshot:** `GET` a room snapshot endpoint returns the full current state the caller is allowed to see, including a room `version`.
 - **Events:** WebSocket messages carry an event type, payload, and the room `version`, which increases monotonically with every state change.
-- **Recovery:** on connect, reconnect, or a detected version gap, the client refetches the snapshot. Clients never depend on receiving every event.
+- **Recovery:** on connect, reconnect, or a detected version gap, the client refetches the snapshot. Clients never depend on receiving every event. (v1 client: refetches on every event.)
+- **Connection:** `ws(s)://<host>/rooms/<code>/ws?token=<participant token>` (browsers cannot set auth headers on WebSockets). Invalid tokens close with code `4401`, unknown rooms with `4404`. The first message is `welcome` with the current version. Lobby events never include option texts, only the option count.
 - **Timers:** owned by the server and sent as absolute deadlines (`ends_at`). Clients only render countdowns.
 
 Events include: participant joined/left/connected/disconnected, host changed, settings changed, submission count changed, tournament started (bracket drop), matchup opened, vote progress changed, matchup closed (with tally), revote started, coin flip, round advanced, champion announced.

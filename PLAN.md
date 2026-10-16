@@ -2,7 +2,7 @@
 
 Product requirements live in [SPEC.md](SPEC.md). This file tracks delivery order and status. Each milestone must meet the Definition of Done (SPEC §14) before the next one starts.
 
-**Current milestone:** M1 — all components implemented and tested on `feature/m1-engine`; pending merge to `main`. (M0 done.)
+**Current milestone:** M3 — not started (M0, M1, M2 done)
 
 ## M0 — Scaffold
 **Goal:** an empty but runnable monorepo.
@@ -31,7 +31,7 @@ Product requirements live in [SPEC.md](SPEC.md). This file tracks delivery order
 
 **Acceptance:** unit and property tests cover every N from 2 to 64, reproducible brackets for the same seed, and no invalid state transitions.
 
-**Status:** ✅ Implemented — 187 engine tests passing (188 backend total), ruff clean. Modules in `backend/src/app/engine/`:
+**Status:** ✅ Done (merged 2026-10-16) — 187 engine tests passing (188 backend total), ruff clean. Modules in `backend/src/app/engine/`:
 - `normalize.py` — `validate_option_text`, `normalize_option`, `merge_submissions` (→ `Contender` with all submitter ids).
 - `bracket.py` — `generate_bracket(ids, seed)` → `Bracket` with `current_matchup()`, `record_winner()`, `champion`. Byes are placed in bit-reversed matchup order so they spread across both halves (per-half counts differ by ≤ 1). Errors: `BracketError`, `MatchupNotPlayable`.
 - `tally.py` — `resolve_matchup(a, b, votes, is_revote, rng)` → `Resolution` with `Outcome.WINNER` / `REVOTE` / `COIN_FLIP`.
@@ -41,16 +41,21 @@ Exhaustive parametrized tests over N = 2–64 stand in for property-based tests 
 ## M2 — Rooms, identity, lobby
 **Goal:** people can create/join rooms and submit options in real time (SPEC §3, §4, §5, §9).
 
-- [ ] DB models and migrations: rooms, participants, submissions, contenders.
-- [ ] Create room (returns participant token and one-time host-recovery link); join by code/URL with nickname rules.
-- [ ] Token auth on REST and WS; hashed tokens; host-only authorization.
-- [ ] Settings CRUD with validated ranges; locked after start.
-- [ ] Submissions with limits, normalization/auto-merge, and hidden-until-start visibility; host merge/remove.
-- [ ] Snapshot endpoint and WS events with monotonic room `version`; client resync on gap/reconnect.
-- [ ] Host transfer (manual, plus lobby auto-transfer after 2 min disconnected).
-- [ ] Frontend: landing/create, join, lobby screens (functional styling).
+- [x] DB models and migrations: rooms, participants, submissions (contenders are derived from submission merge keys).
+- [x] Create room (returns participant token and one-time host-recovery link); join by code/URL with nickname rules.
+- [x] Token auth on REST and WS; hashed tokens; host-only authorization.
+- [x] Settings CRUD with validated ranges; locked after start.
+- [x] Submissions with limits, normalization/auto-merge, and hidden-until-start visibility; host merge/remove.
+- [x] Snapshot endpoint and WS events with monotonic room `version`; client resync on gap/reconnect.
+- [x] Host transfer (manual, plus lobby auto-transfer after 2 min disconnected).
+- [x] Frontend: landing/create, join, lobby screens (functional styling).
 
 **Acceptance:** two browsers can create/join, submit, and see consistent lobby state through reloads and reconnects; API tests cover permissions and validation.
+
+**Status:** ✅ Done (2026-10-16) — 270 backend tests (API, WebSocket, models, migration, concurrency) and 30 frontend tests passing. Verified end to end on Docker Compose through the web proxy (create, join, two WebSocket clients, presence, submission event, snapshot version matches event version). Not yet clicked through by hand in two real browsers.
+- Backend: `app/models.py`, migration `0002`; `app/rooms/` (`schemas`, `service`, `routes`); `app/realtime/` (`hub`, `routes`); `app/security.py`, `app/errors.py`.
+- Frontend: `pages/` (`Landing`, `RoomPage`, `Recover`), `components/` (`Lobby`, `HostPanel`, `ui`), `realtime.ts` (WS + reconnect), `session.ts` (localStorage), `api/client.ts`.
+- Choices made during build (also in SPEC): participants may delete their own submissions in the lobby; the host-recovery link stays valid and rotates the host token on each use; host merges are sticky (later submissions of a merged text join the merged option); clients refetch the snapshot on every WS event; Zustand not added yet (TanStack Query state was enough).
 
 ## M3 — Live voting & matchup flow
 **Goal:** play a full tournament from start to champion (SPEC §6–§8).
