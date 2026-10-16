@@ -95,6 +95,7 @@ class ParticipantOut(BaseModel):
     nickname: str
     avatar: int
     is_host: bool
+    connected: bool
 
 
 class RoomSnapshot(BaseModel):

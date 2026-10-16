@@ -6,8 +6,12 @@ from app.main import app
 
 @pytest.fixture
 def client(clean_db):
+    from app.realtime.hub import hub
+
+    hub.reset()
     with TestClient(app) as c:
         yield c
+    hub.reset()
 
 
 def auth(token: str) -> dict[str, str]:

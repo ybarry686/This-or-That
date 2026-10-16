@@ -21,6 +21,8 @@ module-name = "app"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+# Guards WebSocket tests against hanging forever on a missing message.
+timeout = 30
 
 [tool.ruff]
 line-length = 100
@@ -33,5 +35,6 @@ select = ["E", "F", "I", "B", "UP"]
 dev = [
     "httpx2>=2.13.1",
     "pytest>=9.1.1",
+    "pytest-timeout>=2.4.0",
     "ruff>=0.17.1",
 ]

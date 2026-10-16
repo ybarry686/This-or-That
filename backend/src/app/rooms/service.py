@@ -173,7 +173,7 @@ def submit_option(session: Session, code: str, token: str | None, text: str) -> 
     if len(mine) >= room.max_submissions:
         raise Conflict(f"You can submit at most {room.max_submissions} options.")
     key = _effective_key(room, display)
-    if key not in {s.key for s in room.submissions} and _option_count(room) >= MAX_OPTIONS:
+    if key not in {s.key for s in room.submissions} and option_count(room) >= MAX_OPTIONS:
         raise Conflict(f"This room already has the maximum of {MAX_OPTIONS} options.")
 
     submission = Submission(participant_id=participant.id, text=display, key=key)
@@ -183,7 +183,7 @@ def submit_option(session: Session, code: str, token: str | None, text: str) -> 
     return submission
 
 
-def delete_submission(session: Session, code: str, token: str | None, submission_id: str) -> None:
+def delete_submission(session: Session, code: str, token: str | None, submission_id: str) -> Room:
     room = load_room(session, code, lock=True)
     participant = authenticate(session, room, token)
     _require_lobby(room, "Removing options")
@@ -201,6 +201,7 @@ def delete_submission(session: Session, code: str, token: str | None, submission
     room.submissions.remove(submission)
     room.version += 1
     session.commit()
+    return room
 
 
 def _submissions_with_key(room: Room, key: str) -> list[Submission]:
@@ -212,7 +213,7 @@ def _submissions_with_key(room: Room, key: str) -> list[Submission]:
 
 def merge_contenders(
     session: Session, code: str, token: str | None, source_key: str, target_key: str
-) -> None:
+) -> Room:
     room = load_room(session, code, lock=True)
     _require_host(room, authenticate(session, room, token))
     _require_lobby(room, "Merging options")
@@ -224,9 +225,10 @@ def merge_contenders(
         submission.key = target_key
     room.version += 1
     session.commit()
+    return room
 
 
-def remove_contender(session: Session, code: str, token: str | None, key: str) -> None:
+def remove_contender(session: Session, code: str, token: str | None, key: str) -> Room:
     room = load_room(session, code, lock=True)
     _require_host(room, authenticate(session, room, token))
     _require_lobby(room, "Removing options")
@@ -235,9 +237,10 @@ def remove_contender(session: Session, code: str, token: str | None, key: str) -
         room.submissions.remove(submission)
     room.version += 1
     session.commit()
+    return room
 
 
-def transfer_host(session: Session, code: str, token: str | None, participant_id: str) -> None:
+def transfer_host(session: Session, code: str, token: str | None, participant_id: str) -> Room:
     room = load_room(session, code, lock=True)
     _require_host(room, authenticate(session, room, token))
     if not any(p.id == participant_id for p in room.participants):
@@ -246,6 +249,7 @@ def transfer_host(session: Session, code: str, token: str | None, participant_id
     room.host_participant_id = participant_id
     room.version += 1
     session.commit()
+    return room
 
 
 def recover_host(session: Session, code: str, recovery_token: str) -> IssuedSession:
@@ -264,26 +268,64 @@ def recover_host(session: Session, code: str, recovery_token: str) -> IssuedSess
     return IssuedSession(room=room, participant=creator, token=token)
 
 
+def record_presence_change(session: Session, room_id: str) -> Room:
+    """Bump the version after someone connects or disconnects (presence is part of the snapshot)."""
+    room = session.get(Room, room_id, with_for_update=True)
+    if room is None:
+        raise NotFound("Room not found.")
+    room.version += 1
+    session.commit()
+    return room
+
+
+def hand_off_host(
+    session: Session, room_id: str, absent_host_id: str, connected_ids: set[str]
+) -> Room | None:
+    """Give the host role to the longest-present connected participant if the host is still away.
+
+    Returns the room if the host changed, otherwise None.
+    """
+    room = session.get(Room, room_id, with_for_update=True)
+    if (
+        room is None
+        or room.status is not RoomStatus.LOBBY
+        or room.host_participant_id != absent_host_id
+        or absent_host_id in connected_ids
+    ):
+        return None
+    successor = next((p for p in room.participants if p.id in connected_ids), None)
+    if successor is None:
+        return None
+
+    room.host_participant_id = successor.id
+    room.version += 1
+    session.commit()
+    return room
+
+
 def _contenders(room: Room):
     return merge_submissions(
         [EngineSubmission(s.id, s.participant_id, s.text, key=s.key) for s in room.submissions]
     )
 
 
-def _option_count(room: Room) -> int:
+def option_count(room: Room) -> int:
     return len({s.key for s in room.submissions})
 
 
-def _participant_out(room: Room, participant: Participant) -> schemas.ParticipantOut:
+def _participant_out(
+    room: Room, participant: Participant, connected_ids: set[str]
+) -> schemas.ParticipantOut:
     return schemas.ParticipantOut(
         id=participant.id,
         nickname=participant.nickname,
         avatar=participant.avatar,
         is_host=participant.id == room.host_participant_id,
+        connected=participant.id in connected_ids,
     )
 
 
-def build_snapshot(room: Room, me: Participant) -> schemas.RoomSnapshot:
+def build_snapshot(room: Room, me: Participant, connected_ids: set[str]) -> schemas.RoomSnapshot:
     contenders = None
     if me.id == room.host_participant_id:
         by_id = {s.id: s for s in room.submissions}
@@ -313,9 +355,9 @@ def build_snapshot(room: Room, me: Participant) -> schemas.RoomSnapshot:
             vote_seconds=room.vote_seconds,
         ),
         host_participant_id=room.host_participant_id,
-        me=_participant_out(room, me),
-        participants=[_participant_out(room, p) for p in room.participants],
-        option_count=_option_count(room),
+        me=_participant_out(room, me, connected_ids),
+        participants=[_participant_out(room, p, connected_ids) for p in room.participants],
+        option_count=option_count(room),
         my_submissions=[
             schemas.SubmissionOut(id=s.id, text=s.text)
             for s in room.submissions
