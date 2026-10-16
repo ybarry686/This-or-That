@@ -16,7 +16,7 @@ This or That is a real-time multiplayer website where a group settles a decision
 
 ## Current Status
 - Product discovery completed (grill-me session); decisions are recorded in SPEC.md v0.2 §15.
-- Build plan in PLAN.md (M0–M4, v2). M0 (scaffold) in progress — see PLAN.md for status.
+- Build plan in PLAN.md (M0–M4, v2). M0 (scaffold) done; M1 (tournament engine) next — see PLAN.md for status.
 
 ## Stack (decided)
 - **Backend** (`backend/`): Python, FastAPI (REST + native WebSockets), SQLAlchemy 2, Alembic, PostgreSQL, Pydantic. Managed with `uv`; tests with pytest.
@@ -44,8 +44,12 @@ Backend config comes from env vars / `backend/.env` (see `backend/.env.example`)
 ## Git Workflow
 - Never commit directly to `main`.
 - Per milestone or feature: branch `feature/<name>` off `main` (e.g. `feature/m0-scaffold`).
-- Per component: branch `<milestone>/<component>` off the feature branch (e.g. `m0/backend`). Test it, merge it into the feature branch with `--no-ff`, and push both.
+- Per component: branch `<milestone>/<component>` off the feature branch (e.g. `m0/backend`). Test it and merge it into the feature branch with `--no-ff` — locally.
 - Merge the feature branch into `main` only when every component is merged and all checks are green.
+- Push to the remote (`origin`) only when a milestone/major feature is complete (feature branch + `main`), not after each component.
+
+## Test-First
+- Define the test cases before implementing any code: write the failing tests for a component first, then implement until they pass (see the `tdd` skill).
 
 ## Engineering Conventions
 - **The backend is authoritative.** Clients request actions and never decide outcomes. Validate inputs and permissions server-side.
