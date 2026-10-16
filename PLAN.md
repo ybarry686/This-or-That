@@ -2,20 +2,22 @@
 
 Product requirements live in [SPEC.md](SPEC.md). This file tracks delivery order and status. Each milestone must meet the Definition of Done (SPEC §14) before the next one starts.
 
-**Current milestone:** M0 — not started
+**Current milestone:** M1 — not started (M0 done)
 
 ## M0 — Scaffold
 **Goal:** an empty but runnable monorepo.
 
-- [ ] `backend/`: FastAPI app managed with `uv`, `/health` endpoint, pytest set up.
-- [ ] `frontend/`: Vite + React + TS app managed with `pnpm`, Tailwind, vitest set up.
-- [ ] `docker-compose.yml` with `api`, `postgres`, `web`; `.env.example` (no secrets committed).
-- [ ] SQLAlchemy + Alembic wired to Postgres with an initial empty migration.
-- [ ] OpenAPI → TypeScript type generation script.
-- [ ] CI runs backend and frontend tests and lint.
-- [ ] CLAUDE.md "Commands" section filled in.
+- [x] `backend/`: FastAPI app managed with `uv`, `/health` endpoint, pytest set up.
+- [x] `frontend/`: Vite + React + TS app managed with `pnpm`, Tailwind, vitest set up.
+- [x] `docker-compose.yml` with `api`, `postgres`, `web`; `.env.example` (no secrets committed).
+- [x] SQLAlchemy + Alembic wired to Postgres with an initial empty migration.
+- [x] OpenAPI → TypeScript type generation script.
+- [x] CI runs backend and frontend tests and lint.
+- [x] CLAUDE.md "Commands" section filled in.
 
 **Acceptance:** `docker compose up` serves the web app, which calls `/health` successfully; CI is green.
+
+**Status:** ✅ Done — verified 2026-10-16 (Compose: api `/health` OK direct and via web proxy, migration `0001` applied to Postgres; CI green).
 
 ## M1 — Tournament engine
 **Goal:** pure, fully tested bracket logic with no I/O (SPEC §5 normalization, §6, §7 tallying, §8 fallback).
