@@ -1,25 +1,27 @@
-import { useEffect, useState } from 'react'
-import { getHealth } from './api/client'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { BrowserRouter, Route, Routes } from 'react-router'
+import Landing from './pages/Landing'
+import Recover from './pages/Recover'
+import RoomPage from './pages/RoomPage'
 
-type ApiStatus = 'checking' | 'online' | 'offline'
-
-function App() {
-  const [apiStatus, setApiStatus] = useState<ApiStatus>('checking')
-
-  useEffect(() => {
-    getHealth()
-      .then(() => setApiStatus('online'))
-      .catch(() => setApiStatus('offline'))
-  }, [])
-
+export function AppRoutes() {
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center gap-6 bg-zinc-950 p-4 text-zinc-100">
-      <h1 className="text-5xl font-black tracking-widest">THIS OR THAT</h1>
-      <p role="status" className="text-sm text-zinc-400">
-        API: {apiStatus}
-      </p>
-    </main>
+    <Routes>
+      <Route path="/" element={<Landing />} />
+      <Route path="/r/:code" element={<RoomPage />} />
+      <Route path="/r/:code/recover" element={<Recover />} />
+    </Routes>
   )
 }
 
-export default App
+const queryClient = new QueryClient()
+
+export default function App() {
+  return (
+    <QueryClientProvider client={queryClient}>
+      <BrowserRouter>
+        <AppRoutes />
+      </BrowserRouter>
+    </QueryClientProvider>
+  )
+}

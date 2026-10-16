@@ -4,6 +4,160 @@
  */
 
 export interface paths {
+    "/rooms": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Create Room */
+        post: operations["createRoom"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/rooms/{code}/join": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Join Room */
+        post: operations["joinRoom"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/rooms/{code}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Room */
+        get: operations["getRoom"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Update Room */
+        patch: operations["updateRoom"];
+        trace?: never;
+    };
+    "/rooms/{code}/submissions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Submit Option */
+        post: operations["submitOption"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/rooms/{code}/submissions/{submission_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Delete Submission */
+        delete: operations["deleteSubmission"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/rooms/{code}/contenders/merge": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Merge Contenders */
+        post: operations["mergeContenders"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/rooms/{code}/contenders/remove": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Remove Contender */
+        post: operations["removeContender"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/rooms/{code}/host/transfer": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Transfer Host */
+        post: operations["transferHost"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/rooms/{code}/host/recover": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Recover Host */
+        post: operations["recoverHost"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/health": {
         parameters: {
             query?: never;
@@ -25,10 +179,205 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /** AttributedSubmission */
+        AttributedSubmission: {
+            /** Id */
+            id: string;
+            /** Text */
+            text: string;
+            /** Participant Id */
+            participant_id: string;
+        };
+        /** ContenderOut */
+        ContenderOut: {
+            /** Key */
+            key: string;
+            /** Display Text */
+            display_text: string;
+            /** Submissions */
+            submissions: components["schemas"]["AttributedSubmission"][];
+        };
+        /** CreateRoomRequest */
+        CreateRoomRequest: {
+            /** Title */
+            title: string;
+            /**
+             * Description
+             * @default
+             */
+            description: string;
+            /** Nickname */
+            nickname: string;
+            /**
+             * @default {
+             *       "max_participants": 20,
+             *       "max_submissions": 3,
+             *       "vote_seconds": 30
+             *     }
+             */
+            settings: components["schemas"]["RoomSettings"];
+        };
+        /** CreateRoomResponse */
+        CreateRoomResponse: {
+            /** Code */
+            code: string;
+            /** Participant Id */
+            participant_id: string;
+            /** Nickname */
+            nickname: string;
+            /** Token */
+            token: string;
+            /** Host Recovery Token */
+            host_recovery_token: string;
+        };
+        /** HTTPValidationError */
+        HTTPValidationError: {
+            /** Detail */
+            detail?: components["schemas"]["ValidationError"][];
+        };
         /** HealthResponse */
         HealthResponse: {
             /** Status */
             status: string;
+        };
+        /** JoinRoomRequest */
+        JoinRoomRequest: {
+            /** Nickname */
+            nickname: string;
+        };
+        /** MergeContendersRequest */
+        MergeContendersRequest: {
+            /** Source Key */
+            source_key: string;
+            /** Target Key */
+            target_key: string;
+        };
+        /** ParticipantOut */
+        ParticipantOut: {
+            /** Id */
+            id: string;
+            /** Nickname */
+            nickname: string;
+            /** Avatar */
+            avatar: number;
+            /** Is Host */
+            is_host: boolean;
+            /** Connected */
+            connected: boolean;
+        };
+        /** RecoverHostRequest */
+        RecoverHostRequest: {
+            /** Recovery Token */
+            recovery_token: string;
+        };
+        /** RemoveContenderRequest */
+        RemoveContenderRequest: {
+            /** Key */
+            key: string;
+        };
+        /** RoomSettings */
+        RoomSettings: {
+            /**
+             * Max Participants
+             * @default 20
+             */
+            max_participants: number;
+            /**
+             * Max Submissions
+             * @default 3
+             */
+            max_submissions: number;
+            /**
+             * Vote Seconds
+             * @default 30
+             */
+            vote_seconds: number;
+        };
+        /** RoomSnapshot */
+        RoomSnapshot: {
+            /** Code */
+            code: string;
+            /** Title */
+            title: string;
+            /** Description */
+            description: string;
+            status: components["schemas"]["RoomStatus"];
+            /** Version */
+            version: number;
+            settings: components["schemas"]["RoomSettings"];
+            /** Host Participant Id */
+            host_participant_id: string | null;
+            me: components["schemas"]["ParticipantOut"];
+            /** Participants */
+            participants: components["schemas"]["ParticipantOut"][];
+            /** Option Count */
+            option_count: number;
+            /** My Submissions */
+            my_submissions: components["schemas"]["SubmissionOut"][];
+            /** Contenders */
+            contenders: components["schemas"]["ContenderOut"][] | null;
+        };
+        /**
+         * RoomStatus
+         * @enum {string}
+         */
+        RoomStatus: "lobby" | "in_progress" | "finished" | "expired";
+        /**
+         * SessionResponse
+         * @description Identity handed to a client: keep `token` (and the host's recovery token) secret.
+         */
+        SessionResponse: {
+            /** Code */
+            code: string;
+            /** Participant Id */
+            participant_id: string;
+            /** Nickname */
+            nickname: string;
+            /** Token */
+            token: string;
+        };
+        /** SubmissionOut */
+        SubmissionOut: {
+            /** Id */
+            id: string;
+            /** Text */
+            text: string;
+        };
+        /** SubmitOptionRequest */
+        SubmitOptionRequest: {
+            /** Text */
+            text: string;
+        };
+        /** TransferHostRequest */
+        TransferHostRequest: {
+            /** Participant Id */
+            participant_id: string;
+        };
+        /** UpdateRoomRequest */
+        UpdateRoomRequest: {
+            /** Title */
+            title?: string | null;
+            /** Description */
+            description?: string | null;
+            /** Max Participants */
+            max_participants?: number | null;
+            /** Max Submissions */
+            max_submissions?: number | null;
+            /** Vote Seconds */
+            vote_seconds?: number | null;
+        };
+        /** ValidationError */
+        ValidationError: {
+            /** Location */
+            loc: (string | number)[];
+            /** Message */
+            msg: string;
+            /** Error Type */
+            type: string;
+            /** Input */
+            input?: unknown;
+            /** Context */
+            ctx?: Record<string, never>;
         };
     };
     responses: never;
@@ -39,6 +388,345 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    createRoom: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateRoomRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CreateRoomResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    joinRoom: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                code: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["JoinRoomRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SessionResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    getRoom: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                code: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RoomSnapshot"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    updateRoom: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                code: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateRoomRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RoomSettings"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    submitOption: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                code: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SubmitOptionRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SubmissionOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    deleteSubmission: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                code: string;
+                submission_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    mergeContenders: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                code: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MergeContendersRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    removeContender: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                code: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RemoveContenderRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    transferHost: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                code: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TransferHostRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    recoverHost: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                code: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RecoverHostRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SessionResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     getHealth: {
         parameters: {
             query?: never;
