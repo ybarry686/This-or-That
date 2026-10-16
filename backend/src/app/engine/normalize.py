@@ -12,6 +12,8 @@ class Submission:
     id: str
     participant_id: str
     text: str
+    # Overrides the normalized text as the grouping key (used when the host merges options).
+    key: str | None = None
 
 
 @dataclass(frozen=True)
@@ -48,7 +50,8 @@ def merge_submissions(submissions: Sequence[Submission]) -> list[Contender]:
     """Group submissions by normalized key, in first-submission order, keeping attribution."""
     groups: dict[str, list[Submission]] = {}
     for submission in submissions:
-        groups.setdefault(normalize_option(submission.text), []).append(submission)
+        key = submission.key or normalize_option(submission.text)
+        groups.setdefault(key, []).append(submission)
 
     return [
         Contender(
