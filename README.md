@@ -1,18 +1,17 @@
-# This or That
+# <p align="center">This or That: Gamifying Decision-Making</p>
 
-**Settle any group decision with a head-to-head tournament.**
+**<p align="center">Real-time multiplayer web app: players define topics, submits options, a march madness style bracket commences, players vote until one champion remains.</p>**
 
-Real-time multiplayer web app: everyone submits options, the bracket fills itself, and the room votes matchup by matchup until one champion is left.
-
-![Status](https://img.shields.io/badge/status-in%20development-orange)
-![Python](https://img.shields.io/badge/Python-3.12-3776AB?logo=python&logoColor=white)
-![FastAPI](https://img.shields.io/badge/FastAPI-009688?logo=fastapi&logoColor=white)
-![PostgreSQL](https://img.shields.io/badge/PostgreSQL-17-4169E1?logo=postgresql&logoColor=white)
-![React](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=black)
-![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?logo=typescript&logoColor=white)
-![Vite](https://img.shields.io/badge/Vite-646CFF?logo=vite&logoColor=white)
-![Docker](https://img.shields.io/badge/Docker%20Compose-2496ED?logo=docker&logoColor=white)
-![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)
+<p align="center">
+  <img src="https://img.shields.io/badge/License-MIT-yellow.svg" alt="License: MIT">
+  <img src="https://img.shields.io/badge/status-in%20development-orange" alt="Status">
+  <img src="https://img.shields.io/badge/Python-3.12-3776AB?logo=python&logoColor=white" alt="Python">
+  <img src="https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=black" alt="React">
+  <img src="https://img.shields.io/badge/TypeScript-3178C6?logo=typescript&logoColor=white" alt="TypeScript">
+  <img src="https://img.shields.io/badge/PostgreSQL-17-4169E1?logo=postgresql&logoColor=white" alt="PostgreSQL">
+  <img src="https://img.shields.io/badge/Vite-5-646CFF.svg?style=flat&logo=vite&logoColor=white" alt="Vite">
+  <img src="https://img.shields.io/badge/Docker%20Compose-2496ED?logo=docker&logoColor=white" alt="Docker">
+</p>
 
 ---
 
@@ -311,10 +310,6 @@ Details and acceptance criteria are in [PLAN.md](PLAN.md).
 - Tests first: each component's test cases are written before its implementation.
 - Branching: `main` ← `feature/<milestone>` ← `<milestone>/<component>`. Components are tested and merged into the feature branch; the feature branch merges into `main` only when everything is green.
 - API contract: after backend API changes, run `pnpm gen:api` in `frontend/` to regenerate TypeScript types.
-
-## Developer
-
-**Yagouba Barry**
 
 ## License
 
