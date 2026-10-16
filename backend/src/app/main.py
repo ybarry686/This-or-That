@@ -1,8 +1,11 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
 from app.config import get_settings
+from app.errors import AppError
+from app.rooms.routes import router as rooms_router
 
 
 class HealthResponse(BaseModel):
@@ -17,6 +20,12 @@ def create_app() -> FastAPI:
         allow_methods=["*"],
         allow_headers=["*"],
     )
+
+    @app.exception_handler(AppError)
+    def handle_app_error(_: Request, error: AppError) -> JSONResponse:
+        return JSONResponse(status_code=error.status_code, content={"detail": error.detail})
+
+    app.include_router(rooms_router)
 
     @app.get("/health", response_model=HealthResponse, operation_id="getHealth")
     def health() -> HealthResponse:

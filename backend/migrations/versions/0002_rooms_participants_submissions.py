@@ -38,7 +38,6 @@ def upgrade() -> None:
         sa.Column("version", sa.Integer(), nullable=False),
         sa.Column("seed", sa.Integer(), nullable=True),
         sa.Column("host_participant_id", sa.String(length=32), nullable=True),
-        sa.Column("host_recovery_hash", sa.String(length=64), nullable=True),
         sa.Column(
             "created_at",
             sa.DateTime(timezone=True),
@@ -61,6 +60,7 @@ def upgrade() -> None:
         sa.Column("nickname", sa.String(length=20), nullable=False),
         sa.Column("avatar", sa.Integer(), nullable=False),
         sa.Column("token_hash", sa.String(length=64), nullable=False),
+        sa.Column("recovery_hash", sa.String(length=64), nullable=True),
         sa.Column(
             "joined_at", sa.DateTime(timezone=True), server_default=sa.text("now()"), nullable=False
         ),
@@ -68,6 +68,7 @@ def upgrade() -> None:
         sa.PrimaryKeyConstraint("id"),
         sa.UniqueConstraint("room_id", "nickname"),
         sa.UniqueConstraint("token_hash"),
+        sa.UniqueConstraint("recovery_hash"),
     )
     op.create_index(op.f("ix_participants_room_id"), "participants", ["room_id"], unique=False)
     # rooms <-> participants reference each other, so the host FK is added once both exist.
