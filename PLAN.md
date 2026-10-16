@@ -2,7 +2,7 @@
 
 Product requirements live in [SPEC.md](SPEC.md). This file tracks delivery order and status. Each milestone must meet the Definition of Done (SPEC §14) before the next one starts.
 
-**Current milestone:** M1 — not started (M0 done)
+**Current milestone:** M1 — all components implemented and tested on `feature/m1-engine`; pending merge to `main`. (M0 done.)
 
 ## M0 — Scaffold
 **Goal:** an empty but runnable monorepo.
@@ -22,14 +22,21 @@ Product requirements live in [SPEC.md](SPEC.md). This file tracks delivery order
 ## M1 — Tournament engine
 **Goal:** pure, fully tested bracket logic with no I/O (SPEC §5 normalization, §6, §7 tallying, §8 fallback).
 
-- [ ] Option normalization and duplicate merging, keeping attribution.
-- [ ] Bracket generation from N contenders (2–64) using a seeded shuffle.
-- [ ] Bye placement: round 1 only, spread evenly, at most one per contender.
-- [ ] Matchup order (one at a time) and winner advancement; reject double advancement.
-- [ ] Tally resolution: winner, tie → revote, tie again → coin flip (injectable RNG).
-- [ ] Champion detection.
+- [x] Option normalization and duplicate merging, keeping attribution.
+- [x] Bracket generation from N contenders (2–64) using a seeded shuffle.
+- [x] Bye placement: round 1 only, spread evenly, at most one per contender.
+- [x] Matchup order (one at a time) and winner advancement; reject double advancement.
+- [x] Tally resolution: winner, tie → revote, tie again → coin flip (injectable RNG).
+- [x] Champion detection.
 
 **Acceptance:** unit and property tests cover every N from 2 to 64, reproducible brackets for the same seed, and no invalid state transitions.
+
+**Status:** ✅ Implemented — 187 engine tests passing (188 backend total), ruff clean. Modules in `backend/src/app/engine/`:
+- `normalize.py` — `validate_option_text`, `normalize_option`, `merge_submissions` (→ `Contender` with all submitter ids).
+- `bracket.py` — `generate_bracket(ids, seed)` → `Bracket` with `current_matchup()`, `record_winner()`, `champion`. Byes are placed in bit-reversed matchup order so they spread across both halves (per-half counts differ by ≤ 1). Errors: `BracketError`, `MatchupNotPlayable`.
+- `tally.py` — `resolve_matchup(a, b, votes, is_revote, rng)` → `Resolution` with `Outcome.WINNER` / `REVOTE` / `COIN_FLIP`.
+
+Exhaustive parametrized tests over N = 2–64 stand in for property-based tests (no Hypothesis dependency added).
 
 ## M2 — Rooms, identity, lobby
 **Goal:** people can create/join rooms and submit options in real time (SPEC §3, §4, §5, §9).

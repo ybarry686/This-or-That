@@ -16,7 +16,10 @@ This or That is a real-time multiplayer website where a group settles a decision
 
 ## Current Status
 - Product discovery completed (grill-me session); decisions are recorded in SPEC.md v0.2 §15.
-- Build plan in PLAN.md (M0–M4, v2). M0 (scaffold) done; M1 (tournament engine) next — see PLAN.md for status.
+- Build plan in PLAN.md (M0–M4, v2). See PLAN.md for detailed status.
+- M0 (scaffold) done and on `main`.
+- M1 (tournament engine) implemented and tested on `feature/m1-engine`; pending merge to `main` and push.
+- Next: M2 (rooms, identity, lobby), once approved.
 
 ## Stack (decided)
 - **Backend** (`backend/`): Python, FastAPI (REST + native WebSockets), SQLAlchemy 2, Alembic, PostgreSQL, Pydantic. Managed with `uv`; tests with pytest.
@@ -50,6 +53,12 @@ Backend config comes from env vars / `backend/.env` (see `backend/.env.example`)
 
 ## Test-First
 - Define the test cases before implementing any code: write the failing tests for a component first, then implement until they pass (see the `tdd` skill).
+
+## Code Layout
+- `backend/src/app/main.py` — FastAPI app factory and routes; `config.py` settings; `db.py` SQLAlchemy base/session.
+- `backend/src/app/engine/` — pure tournament engine (`normalize`, `bracket`, `tally`); tests in `backend/tests/engine/`.
+- `backend/migrations/` — Alembic revisions.
+- `frontend/src/api/` — API client and generated `schema.d.ts`.
 
 ## Engineering Conventions
 - **The backend is authoritative.** Clients request actions and never decide outcomes. Validate inputs and permissions server-side.

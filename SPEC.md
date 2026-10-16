@@ -116,7 +116,7 @@ Submissions with the same normalized key **auto-merge** into one contender. The 
 The tournament uses a single-elimination bracket. The engine is a pure module with no I/O so it can be fully unit-tested.
 
 - **Seeding:** at start the server shuffles the unique contenders using a random seed that is stored with the room, so the bracket is reproducible.
-- **Byes:** the field is padded to the next power of two. Byes occur only in round 1, are spread evenly across the bracket, and auto-advance their contender. No contender receives more than one bye.
+- **Byes:** the field is padded to the next power of two. Byes occur only in round 1, are spread evenly across the bracket (placed in bit-reversed matchup order, so the two halves differ by at most one bye), and auto-advance their contender. No contender receives more than one bye.
 - Matchups are played **one at a time**, in bracket order (round by round, top to bottom).
 - A winner advances only after its matchup is resolved; a contender cannot advance twice from the same matchup.
 - Round and matchup outcomes are persisted.
