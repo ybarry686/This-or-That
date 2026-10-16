@@ -95,3 +95,17 @@ class TestMergeSubmissions:
 
     def test_empty_input_gives_no_contenders(self):
         assert merge_submissions([]) == []
+
+
+class TestHostMergeKey:
+    def test_explicit_key_overrides_normalized_text(self):
+        contenders = merge_submissions(
+            [
+                Submission("s1", "p1", "Pizza"),
+                Submission("s2", "p2", "Pizza Hut", key="pizza"),
+            ]
+        )
+
+        [pizza] = contenders
+        assert pizza.display_text == "Pizza"
+        assert pizza.submission_ids == ("s1", "s2")
