@@ -2,18 +2,18 @@
 
 Product requirements live in [SPEC.md](SPEC.md). This file tracks delivery order and status. Each milestone must meet the Definition of Done (SPEC §14) before the next one starts.
 
-**Current milestone:** M0 — not started
+**Current milestone:** M0 — in progress (awaiting Docker Compose + CI verification)
 
 ## M0 — Scaffold
 **Goal:** an empty but runnable monorepo.
 
-- [ ] `backend/`: FastAPI app managed with `uv`, `/health` endpoint, pytest set up.
-- [ ] `frontend/`: Vite + React + TS app managed with `pnpm`, Tailwind, vitest set up.
+- [x] `backend/`: FastAPI app managed with `uv`, `/health` endpoint, pytest set up.
+- [x] `frontend/`: Vite + React + TS app managed with `pnpm`, Tailwind, vitest set up.
 - [ ] `docker-compose.yml` with `api`, `postgres`, `web`; `.env.example` (no secrets committed).
-- [ ] SQLAlchemy + Alembic wired to Postgres with an initial empty migration.
-- [ ] OpenAPI → TypeScript type generation script.
+- [x] SQLAlchemy + Alembic wired to Postgres with an initial empty migration. (Offline SQL generation verified; running it against a live DB happens with Compose.)
+- [x] OpenAPI → TypeScript type generation script.
 - [ ] CI runs backend and frontend tests and lint.
-- [ ] CLAUDE.md "Commands" section filled in.
+- [x] CLAUDE.md "Commands" section filled in.
 
 **Acceptance:** `docker compose up` serves the web app, which calls `/health` successfully; CI is green.
 

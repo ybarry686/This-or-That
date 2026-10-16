@@ -16,8 +16,7 @@ This or That is a real-time multiplayer website where a group settles a decision
 
 ## Current Status
 - Product discovery completed (grill-me session); decisions are recorded in SPEC.md v0.2 §15.
-- Build plan drafted in PLAN.md (M0–M4, v2).
-- Next step: owner approval of the plan, then M0 (scaffold).
+- Build plan in PLAN.md (M0–M4, v2). M0 (scaffold) in progress — see PLAN.md for status.
 
 ## Stack (decided)
 - **Backend** (`backend/`): Python, FastAPI (REST + native WebSockets), SQLAlchemy 2, Alembic, PostgreSQL, Pydantic. Managed with `uv`; tests with pytest.
@@ -25,7 +24,28 @@ This or That is a real-time multiplayer website where a group settles a decision
 - **Local env:** Docker Compose (`api`, `postgres`, `web`). Single instance; hosting chosen later.
 
 ## Commands
-_To be filled in during M0._
+Run from the repo root unless noted.
+
+| Task | Command |
+|---|---|
+| Whole stack (web :5173, api :8000, postgres :5432) | `docker compose up --build` |
+| Backend deps | `cd backend && uv sync` |
+| Backend dev server | `cd backend && uv run uvicorn app.main:app --reload` |
+| Backend tests | `cd backend && uv run pytest` |
+| Backend lint / format | `cd backend && uv run ruff check . && uv run ruff format .` |
+| DB migrations | `cd backend && uv run alembic upgrade head` (new: `uv run alembic revision --autogenerate -m "msg"`) |
+| Frontend deps | `cd frontend && pnpm install` |
+| Frontend dev server | `cd frontend && pnpm dev` (proxies `/api/*` → `http://localhost:8000`) |
+| Frontend tests / lint / types / build | `cd frontend && pnpm test`, `pnpm lint`, `pnpm typecheck`, `pnpm build` |
+| Regenerate API types after backend API changes | `cd frontend && pnpm gen:api` (commit `src/api/schema.d.ts`) |
+
+Backend config comes from env vars / `backend/.env` (see `backend/.env.example`).
+
+## Git Workflow
+- Never commit directly to `main`.
+- Per milestone or feature: branch `feature/<name>` off `main` (e.g. `feature/m0-scaffold`).
+- Per component: branch `<milestone>/<component>` off the feature branch (e.g. `m0/backend`). Test it, merge it into the feature branch with `--no-ff`, and push both.
+- Merge the feature branch into `main` only when every component is merged and all checks are green.
 
 ## Engineering Conventions
 - **The backend is authoritative.** Clients request actions and never decide outcomes. Validate inputs and permissions server-side.
