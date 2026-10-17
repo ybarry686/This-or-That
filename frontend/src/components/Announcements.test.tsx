@@ -1,6 +1,7 @@
 import { act, screen } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { RoomSnapshot } from '../api/client'
+import { audio } from '../audio'
 import { saveSession } from '../session'
 import { resetSettingsForTests, setSetting } from '../settings'
 import {
@@ -122,6 +123,15 @@ describe('announcements', () => {
 
     expect(reveal).toHaveTextContent(/pizza/i)
     expect(screen.getByTestId('confetti')).toBeInTheDocument()
+  })
+
+  it('plays the matching sound cue', async () => {
+    const play = vi.spyOn(audio, 'play')
+    await open()
+
+    await serverMovesTo(firstMatchupDecided('votes'), /k\.o\./i)
+
+    expect(play).toHaveBeenCalledWith('ko')
   })
 
   it('skips confetti when motion is reduced', async () => {

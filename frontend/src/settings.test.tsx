@@ -1,6 +1,7 @@
 import { act, render, renderHook, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { audio } from './audio'
 import SettingsBar from './components/SettingsBar'
 import { resetSettingsForTests, setSetting, useReducedMotion, useSettings } from './settings'
 
@@ -113,6 +114,29 @@ describe('SettingsBar', () => {
     await user.click(screen.getByRole('button', { name: /crt/i }))
 
     expect(document.documentElement).toHaveAttribute('data-crt', 'off')
+  })
+
+  it('unlocks audio when sound is switched on (a user gesture)', async () => {
+    const unlock = vi.spyOn(audio, 'unlock')
+    const user = userEvent.setup()
+    render(<SettingsBar />)
+
+    await user.click(screen.getByRole('button', { name: /sound/i }))
+
+    expect(unlock).toHaveBeenCalled()
+  })
+
+  it('starts and stops the music with its toggle', async () => {
+    const start = vi.spyOn(audio, 'startMusic')
+    const stop = vi.spyOn(audio, 'stopMusic')
+    const user = userEvent.setup()
+    render(<SettingsBar />)
+
+    await user.click(screen.getByRole('button', { name: /music/i }))
+    expect(start).toHaveBeenCalled()
+
+    await user.click(screen.getByRole('button', { name: /music/i }))
+    expect(stop).toHaveBeenCalled()
   })
 
   it('turns reduced motion on even when the system does not ask for it', async () => {

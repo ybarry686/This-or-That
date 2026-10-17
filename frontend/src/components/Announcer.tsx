@@ -1,6 +1,8 @@
 import { AnimatePresence, motion } from 'motion/react'
+import { useEffect } from 'react'
 import type { RoomSnapshot } from '../api/client'
 import { useAnnouncements, type Announcement } from '../announcements'
+import { audio } from '../audio'
 import { useReducedMotion } from '../settings'
 
 const COLORS: Record<Announcement['kind'], string> = {
@@ -15,6 +17,10 @@ const COLORS: Record<Announcement['kind'], string> = {
 export default function Announcer({ tournament }: { tournament: RoomSnapshot['tournament'] }) {
   const announcement = useAnnouncements(tournament)
   const reduceMotion = useReducedMotion()
+
+  useEffect(() => {
+    if (announcement) audio.play(announcement.kind)
+  }, [announcement])
 
   return (
     <AnimatePresence>

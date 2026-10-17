@@ -2,6 +2,7 @@ import { screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { RoomSnapshot } from '../api/client'
+import { audio } from '../audio'
 import { saveSession } from '../session'
 import {
   HOST_ME,
@@ -110,6 +111,17 @@ describe('matchup screen', () => {
       contender_id: 'c-tacos',
     })
     expect(screen.getByText(/1\/2 voted/i)).toBeInTheDocument()
+  })
+
+  it('plays a blip when voting', async () => {
+    const play = vi.spyOn(audio, 'play')
+    const user = userEvent.setup()
+    serve(() => makeTournamentSnapshot(), { 'POST /api/rooms/ABC234/votes': (body) => body })
+    renderRoute('/r/ABC234')
+
+    await user.click(await screen.findByRole('button', { name: /vote for pizza/i }))
+
+    expect(play).toHaveBeenCalledWith('vote')
   })
 
   it('votes with the keyboard', async () => {
