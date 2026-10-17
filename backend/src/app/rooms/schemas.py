@@ -173,3 +173,23 @@ class RoomSnapshot(BaseModel):
     tournament: TournamentOut | None
     # Server clock, so clients can render countdowns to `ends_at` despite clock skew.
     server_time: datetime
+    finished_at: datetime | None
+    rematch_code: str | None
+
+
+class PublicParticipant(BaseModel):
+    id: str
+    nickname: str
+    avatar: int
+
+
+class ResultsOut(BaseModel):
+    """Read-only results of a finished game, viewable by anyone with the room code."""
+
+    code: str
+    title: str
+    description: str
+    finished_at: datetime
+    participants: list[PublicParticipant]
+    tournament: TournamentOut
+    rematch_code: str | None

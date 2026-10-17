@@ -104,6 +104,13 @@ def _add_participant(session: Session, room: Room, nickname: str) -> IssuedSessi
 
 
 def create_room(session: Session, request: schemas.CreateRoomRequest) -> tuple[IssuedSession, str]:
+    issued, recovery_token = _new_room(session, request)
+    session.commit()
+    return issued, recovery_token
+
+
+def _new_room(session: Session, request: schemas.CreateRoomRequest) -> tuple[IssuedSession, str]:
+    """Create a room with its host participant, without committing."""
     room = Room(
         code=_generate_code(session),
         title=request.title,
@@ -119,14 +126,16 @@ def create_room(session: Session, request: schemas.CreateRoomRequest) -> tuple[I
     recovery_token = new_token()
     issued.participant.recovery_hash = hash_token(recovery_token)
     room.host_participant_id = issued.participant.id
-    session.commit()
+    session.flush()
     return issued, recovery_token
 
 
 def join_room(session: Session, code: str, nickname: str) -> IssuedSession:
     room = load_room(session, code, lock=True)
-    if room.status in (RoomStatus.FINISHED, RoomStatus.EXPIRED):
+    if room.status is RoomStatus.FINISHED:
         raise Conflict("This room has already finished.")
+    if room.status is RoomStatus.EXPIRED:
+        raise Conflict("This room has expired.")
     if len(room.participants) >= room.max_participants:
         raise Conflict("This room is full.")
 
@@ -368,4 +377,55 @@ def build_snapshot(room: Room, me: Participant, connected_ids: set[str]) -> sche
         contenders=contenders,
         tournament=build_tournament(room, me),
         server_time=datetime.now(UTC),
+        finished_at=room.finished_at,
+        rematch_code=room.rematch_code,
     )
+
+
+def get_results(session: Session, code: str) -> schemas.ResultsOut:
+    room = load_room(session, code)
+    if room.status is not RoomStatus.FINISHED:
+        raise Conflict("Results are available once the tournament finishes.")
+    return schemas.ResultsOut(
+        code=room.code,
+        title=room.title,
+        description=room.description,
+        finished_at=room.finished_at,
+        participants=[
+            schemas.PublicParticipant(id=p.id, nickname=p.nickname, avatar=p.avatar)
+            for p in room.participants
+        ],
+        tournament=build_tournament(room, None),
+        rematch_code=room.rematch_code,
+    )
+
+
+def create_rematch(
+    session: Session, code: str, token: str | None
+) -> tuple[Room, IssuedSession, str]:
+    """New lobby with the same question and settings, hosted by the current host (SPEC §4)."""
+    room = load_room(session, code, lock=True)
+    host = authenticate(session, room, token)
+    require_host(room, host)
+    if room.status is not RoomStatus.FINISHED:
+        raise Conflict("A rematch can only be started after the tournament finishes.")
+    if room.rematch_code:
+        raise Conflict(f"A rematch already exists: {room.rematch_code}.")
+
+    issued, recovery_token = _new_room(
+        session,
+        schemas.CreateRoomRequest(
+            title=room.title,
+            description=room.description,
+            nickname=host.nickname,
+            settings=schemas.RoomSettings(
+                max_participants=room.max_participants,
+                max_submissions=room.max_submissions,
+                vote_seconds=room.vote_seconds,
+            ),
+        ),
+    )
+    room.rematch_code = issued.room.code
+    room.version += 1
+    session.commit()
+    return room, issued, recovery_token

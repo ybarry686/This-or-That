@@ -43,7 +43,7 @@ def _matchup_out(matchup: Matchup) -> schemas.MatchupOut:
     )
 
 
-def _current_out(room: Room, me: Participant) -> schemas.CurrentMatchup | None:
+def _current_out(room: Room, me: Participant | None) -> schemas.CurrentMatchup | None:
     matchup = current_matchup(room)
     if matchup is None:
         return None
@@ -57,12 +57,13 @@ def _current_out(room: Room, me: Participant) -> schemas.CurrentMatchup | None:
         eligible_count=len(eligible),
         # Who has voted is public; what they voted stays secret until the matchup closes.
         voted_participant_ids=[p.id for p in eligible if p.id in votes],
-        my_vote=votes.get(me.id),
-        can_vote=any(p.id == me.id for p in eligible),
+        my_vote=votes.get(me.id) if me else None,
+        can_vote=me is not None and any(p.id == me.id for p in eligible),
     )
 
 
-def build_tournament(room: Room, me: Participant) -> schemas.TournamentOut | None:
+def build_tournament(room: Room, me: Participant | None) -> schemas.TournamentOut | None:
+    """The bracket as `me` sees it (None for an anonymous results viewer)."""
     if room.status is RoomStatus.LOBBY or not room.matchups:
         return None
 
