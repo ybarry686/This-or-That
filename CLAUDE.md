@@ -17,8 +17,8 @@ This or That is a real-time multiplayer website where a group settles a decision
 ## Current Status
 - Product discovery completed (grill-me session); decisions are recorded in SPEC.md v0.2 §15.
 - Build plan in PLAN.md (M0–M4, v2). See PLAN.md for detailed status.
-- M0 (scaffold), M1 (tournament engine), M2 (rooms, identity, lobby) done and on `main`.
-- Next: M3 (live voting & matchup flow), once approved.
+- M0 (scaffold), M1 (tournament engine), M2 (rooms, identity, lobby), M3 (live voting) done and on `main`.
+- Next: M4 (arcade polish & results), once approved.
 
 ## Stack (decided)
 - **Backend** (`backend/`): Python, FastAPI (REST + native WebSockets), SQLAlchemy 2, Alembic, PostgreSQL, Pydantic. Managed with `uv`; tests with pytest.
@@ -56,16 +56,17 @@ Backend config comes from env vars / `backend/.env` (see `backend/.env.example`)
 
 ## Code Layout
 - `backend/src/app/main.py` — FastAPI app factory, router registration, `AppError` → JSON handler; `config.py` settings; `db.py` SQLAlchemy base/session.
-- `backend/src/app/models.py` — `Room`, `Participant`, `Submission`.
+- `backend/src/app/models.py` — `Room`, `Participant`, `Submission`, `Contender`, `Matchup`, `Vote`.
 - `backend/src/app/rooms/` — lobby REST API: `schemas` (Pydantic), `service` (business rules; every mutation locks the room row, bumps `version`, commits), `routes` (HTTP + event publishing).
 - `backend/src/app/realtime/` — `hub` (in-process socket registry, broadcast, timers) and `routes` (room WebSocket, presence, lobby host hand-off).
+- `backend/src/app/tournament/` — `service` (start, vote, close phase, advance the bracket via the engine; returns events), `snapshot` (tournament section of the snapshot), `timers` (one deadline timer per room, re-synced from the DB after every change; disconnect re-check; startup recovery), `routes`.
 - `backend/src/app/engine/` — pure tournament engine (`normalize`, `bracket`, `tally`).
 - `backend/src/app/security.py` (tokens, hashing), `errors.py` (domain errors → HTTP status).
 - `backend/tests/` — `engine/` unit tests; `api/` REST + WebSocket tests (need Postgres: `docker compose up -d postgres`); `conftest.py` creates/truncates the `this_or_that_test` DB.
 - `backend/migrations/` — Alembic revisions.
 - `frontend/src/api/` — typed fetch client and generated `schema.d.ts`; `session.ts` (localStorage identity); `realtime.ts` (WS hook with reconnect).
-- `frontend/src/pages/` — `Landing`, `RoomPage` (join form or lobby), `Recover`; `components/` — `Lobby`, `HostPanel`, `ui`.
-- `frontend/src/test/helpers.tsx` — `mockApi` fetch stub, `FakeWebSocket`, `renderRoute`, `makeSnapshot`.
+- `frontend/src/pages/` — `Landing`, `RoomPage` (join form or room), `Recover`; `components/` — `Lobby` (loads the room; lobby view or `Tournament`), `HostPanel` (start, curation, settings), `Tournament` (matchup, bracket, champion), `ui`.
+- `frontend/src/test/helpers.tsx` — `mockApi` fetch stub, `FakeWebSocket`, `renderRoute`, `makeSnapshot`, `makeTournamentSnapshot`.
 
 ## Engineering Conventions
 - **The backend is authoritative.** Clients request actions and never decide outcomes. Validate inputs and permissions server-side.
