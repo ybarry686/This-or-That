@@ -28,7 +28,7 @@ export default function Lobby({ code, session, onSessionRejected }: Props) {
   if (room.isPending) {
     return (
       <Page>
-        <p className="text-zinc-400">Loading room…</p>
+        <p className="text-dim">Loading room…</p>
       </Page>
     )
   }
@@ -67,11 +67,11 @@ function RoomHeader({ snapshot }: { snapshot: RoomSnapshot }) {
   const count = snapshot.option_count
   return (
     <header className="flex flex-col gap-2">
-      <h1 className="text-3xl font-black">{snapshot.title}</h1>
-      {snapshot.description && <p className="text-zinc-400">{snapshot.description}</p>}
-      <div className="flex flex-wrap items-center gap-3 text-sm text-zinc-400">
+      <h1 className="text-2xl font-black sm:text-3xl">{snapshot.title}</h1>
+      {snapshot.description && <p className="text-dim">{snapshot.description}</p>}
+      <div className="flex flex-wrap items-center gap-3 text-sm text-dim">
         <span>
-          Room code <strong className="font-mono text-lg tracking-widest text-zinc-100">{snapshot.code}</strong>
+          Room code <strong className="font-mono text-lg tracking-widest text-white">{snapshot.code}</strong>
         </span>
         <button
           type="button"
@@ -96,11 +96,11 @@ function RecoveryLinkNotice({ code }: { code: string }) {
   const link = `${window.location.origin}/r/${code}/recover#${state.recoveryToken}`
   return (
     <Card>
-      <h2 className="font-bold">Save your host recovery link</h2>
-      <p className="mt-1 text-sm text-zinc-400">
+      <h2 className="mb-3 font-arcade text-xs leading-relaxed tracking-wider text-coin uppercase">Save your host recovery link</h2>
+      <p className="mt-1 text-sm text-dim">
         It is shown only once. Open it on any device to get your host controls back.
       </p>
-      <code className="mt-2 block break-all rounded bg-zinc-950 p-2 text-xs">{link}</code>
+      <code className="mt-2 block break-all rounded bg-ink p-2 text-xs">{link}</code>
       <button type="button" className={`${subtleButtonClass} mt-2`} onClick={() => setDismissed(true)}>
         I saved it
       </button>
@@ -118,7 +118,7 @@ function PlayerList({ snapshot, token, onChanged }: SectionProps) {
 
   return (
     <Card>
-      <h2 className="mb-3 font-bold">
+      <h2 className="mb-3 font-arcade text-xs leading-relaxed tracking-wider text-coin uppercase">
         Players ({snapshot.participants.length}/{snapshot.settings.max_participants})
       </h2>
       <ul aria-label="Players" className="flex flex-col gap-2">
@@ -127,13 +127,13 @@ function PlayerList({ snapshot, token, onChanged }: SectionProps) {
             <span
               role="img"
               aria-label={`${p.nickname} is ${p.connected ? 'online' : 'offline'}`}
-              className={`h-2 w-2 rounded-full ${p.connected ? 'bg-emerald-400' : 'bg-zinc-600'}`}
+              className={`h-2 w-2 rounded-full ${p.connected ? 'bg-go' : 'bg-line'}`}
             />
             <span>{p.nickname}</span>
             {p.is_host && (
-              <span className="badge rounded bg-amber-400 px-1 text-xs font-bold text-zinc-900">HOST</span>
+              <span className="badge rounded bg-coin px-1 text-xs font-bold text-ink">HOST</span>
             )}
-            {p.id === snapshot.me.id && <span className="text-xs text-zinc-500">(you)</span>}
+            {p.id === snapshot.me.id && <span className="text-xs text-dim/80">(you)</span>}
             {snapshot.me.is_host && !p.is_host && (
               <button
                 type="button"
@@ -176,8 +176,8 @@ function MyOptions({ snapshot, token, onChanged }: SectionProps) {
 
   return (
     <Card>
-      <h2 className="mb-1 font-bold">Your options</h2>
-      <p className="mb-3 text-sm text-zinc-400">
+      <h2 className="mb-3 font-arcade text-xs leading-relaxed tracking-wider text-coin uppercase">Your options</h2>
+      <p className="mb-3 text-sm text-dim">
         {used} of {limit} used. Other players' options stay hidden until the tournament starts.
       </p>
       <ul aria-label="Your options" className="mb-3 flex flex-col gap-2">

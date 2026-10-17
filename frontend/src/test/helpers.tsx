@@ -102,6 +102,8 @@ export function makeSnapshot(overrides: Partial<RoomSnapshot> = {}): RoomSnapsho
     contenders: null,
     tournament: null,
     server_time: '2026-10-17T12:00:00+00:00',
+    finished_at: null,
+    rematch_code: null,
     ...overrides,
   }
 }

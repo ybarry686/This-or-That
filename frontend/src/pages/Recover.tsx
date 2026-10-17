@@ -28,7 +28,7 @@ export default function Recover() {
 
   return (
     <Page>
-      <h1 className="text-2xl font-bold">Recovering host access…</h1>
+      <h1 className="font-arcade text-sm leading-relaxed text-coin">Recovering host access…</h1>
       <ErrorMessage error={error} />
     </Page>
   )
