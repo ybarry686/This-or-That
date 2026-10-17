@@ -10,7 +10,7 @@ from app.models import Room
 from app.realtime.hub import hub
 from app.rooms import schemas
 from app.rooms.routes import Token
-from app.tournament import service
+from app.tournament import service, timers
 from app.tournament.service import Event
 
 router = APIRouter(prefix="/rooms", tags=["tournament"])
@@ -19,9 +19,10 @@ DbSession = Annotated[Session, Depends(get_session)]
 
 
 def publish_events(background: BackgroundTasks, room: Room, events: list[Event]) -> None:
-    """Broadcast events in order once the response has been sent."""
+    """Broadcast events in order once the response has been sent, then re-arm the deadline."""
     for type, version, data in events:
         background.add_task(hub.publish, room.id, type, version, data)
+    background.add_task(timers.sync_deadline, room.id)
 
 
 @router.post("/{code}/start", operation_id="startTournament")
