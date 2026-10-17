@@ -41,6 +41,8 @@ test('two players play a full game from lobby to champion', async ({ browser }) 
 
   // Host starts; both land on the matchup once the reveal pause ends.
   await host.getByRole('button', { name: 'Start tournament' }).click()
+  await expect(host.getByRole('status', { name: /fight/i })).toBeVisible()
+  await shot(host, '04a-round-intro')
   for (const page of [host, guest]) {
     await expect(page.getByRole('region', { name: 'Current matchup' })).toBeVisible()
     await expect(page.getByRole('button', { name: 'Vote for Pizza' })).toBeEnabled()
@@ -55,6 +57,8 @@ test('two players play a full game from lobby to champion', async ({ browser }) 
   for (const page of [host, guest]) {
     await expect(page.getByRole('heading', { name: /champion/i })).toContainText('Pizza')
   }
+  await expect(host.getByRole('status', { name: /champion/i })).toBeVisible()
+  await shot(host, '05a-champion-reveal')
   await expect(host.getByText(/pizza beat tacos 2–0/i)).toBeVisible()
   await shot(host, '06-champion-host')
   await shot(guest, '07-champion-guest-mobile')

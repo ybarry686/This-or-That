@@ -1,4 +1,5 @@
 import { useMutation } from '@tanstack/react-query'
+import { motion } from 'motion/react'
 import { useEffect, useMemo, useState } from 'react'
 import { api, type RoomSnapshot } from '../api/client'
 import { Card, ErrorMessage, subtleButtonClass } from './ui'
@@ -108,7 +109,11 @@ function CurrentMatchup({
           Tie {matchup.votes_a}–{matchup.votes_b}! Sudden-death revote
         </p>
       )}
-      <div className="mt-4 grid grid-cols-1 items-center gap-3 sm:grid-cols-[1fr_auto_1fr]">
+      {/* Keyed by matchup and phase so each new fight slams in. */}
+      <div
+        key={`${matchup.id}:${current.phase}`}
+        className="mt-4 grid grid-cols-1 items-center gap-3 sm:grid-cols-[1fr_auto_1fr]"
+      >
         {sides.map((id, i) => (
           <VoteButton
             key={id}
@@ -119,7 +124,14 @@ function CurrentMatchup({
             side={i === 0 ? 'p1' : 'p2'}
           />
         ))}
-        <span className="arcade-glow order-2 text-center font-arcade text-xl text-coin">VS</span>
+        <motion.span
+          className="arcade-glow order-2 text-center font-arcade text-xl text-coin"
+          initial={{ scale: 3.5, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          transition={{ type: 'spring', stiffness: 500, damping: 14, delay: 0.25 }}
+        >
+          VS
+        </motion.span>
       </div>
       <div className="mt-4 flex flex-wrap items-center justify-between gap-2 text-sm text-dim">
         <span className={`font-arcade text-[11px] ${open && endsIn <= 5 ? 'text-p1' : 'text-white'}`}>
@@ -171,8 +183,11 @@ function VoteButton({
       : 'order-3 border-p2 bg-p2/15 hover:bg-p2/25'
 
   return (
-    <button
+    <motion.button
       type="button"
+      initial={{ x: side === 'p1' ? -80 : 80, opacity: 0 }}
+      animate={{ x: 0, opacity: 1 }}
+      transition={{ type: 'spring', stiffness: 380, damping: 24 }}
       aria-label={`Vote for ${name}`}
       aria-pressed={selected}
       disabled={disabled}
@@ -180,7 +195,7 @@ function VoteButton({
       className={`${colors} min-h-28 rounded-md border-2 border-b-4 px-3 py-4 text-xl font-black break-words text-white transition-transform active:translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-50 ${selected ? 'ring-4 ring-go ring-offset-2 ring-offset-ink' : ''}`}
     >
       {name}
-    </button>
+    </motion.button>
   )
 }
 
@@ -229,10 +244,17 @@ function BracketMatchup({ matchup, names }: { matchup: MatchupOut; names: Map<st
     if (!id) return <span className="text-dim/60">{matchup.is_bye ? 'bye' : 'TBD'}</span>
     const won = matchup.winner_id === id
     return (
-      <span className={`flex justify-between gap-2 ${won ? 'font-bold text-white' : 'text-dim'}`}>
+      <motion.span
+        // Re-keyed when the winner is decided, so the advancing name flashes gold.
+        key={`${id}:${won}`}
+        initial={won ? { color: 'var(--color-coin)' } : false}
+        animate={won ? { color: '#ffffff' } : undefined}
+        transition={{ duration: 1.2 }}
+        className={`flex justify-between gap-2 ${won ? 'font-bold text-white' : 'text-dim'}`}
+      >
         <span>{names.get(id)}</span>
         {matchup.outcome === 'votes' && <span>{votes}</span>}
-      </span>
+      </motion.span>
     )
   }
   return (

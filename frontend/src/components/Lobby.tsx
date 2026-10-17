@@ -4,6 +4,7 @@ import { useLocation } from 'react-router'
 import { ApiError, api, type RoomSnapshot } from '../api/client'
 import { useRoomEvents } from '../realtime'
 import type { StoredSession } from '../session'
+import Announcer from './Announcer'
 import HostPanel from './HostPanel'
 import Tournament from './Tournament'
 import { Card, ErrorMessage, Page, buttonClass, inputClass, subtleButtonClass } from './ui'
@@ -41,22 +42,23 @@ export default function Lobby({ code, session, onSessionRejected }: Props) {
   }
 
   const snapshot = room.data
-  if (snapshot.status !== 'lobby' && snapshot.tournament) {
-    return (
-      <Page>
-        <RoomHeader snapshot={snapshot} />
-        <Tournament snapshot={snapshot} token={session.token} onChanged={refresh} />
-      </Page>
-    )
-  }
+  const playing = snapshot.status !== 'lobby' && snapshot.tournament !== null
   return (
     <Page>
+      {/* One Announcer for the room's whole life, so starting the tournament gets its call. */}
+      <Announcer tournament={snapshot.tournament} />
       <RoomHeader snapshot={snapshot} />
-      <RecoveryLinkNotice code={code} />
-      <PlayerList snapshot={snapshot} token={session.token} onChanged={refresh} />
-      <MyOptions snapshot={snapshot} token={session.token} onChanged={refresh} />
-      {snapshot.me.is_host && (
-        <HostPanel snapshot={snapshot} token={session.token} onChanged={refresh} />
+      {playing ? (
+        <Tournament snapshot={snapshot} token={session.token} onChanged={refresh} />
+      ) : (
+        <>
+          <RecoveryLinkNotice code={code} />
+          <PlayerList snapshot={snapshot} token={session.token} onChanged={refresh} />
+          <MyOptions snapshot={snapshot} token={session.token} onChanged={refresh} />
+          {snapshot.me.is_host && (
+            <HostPanel snapshot={snapshot} token={session.token} onChanged={refresh} />
+          )}
+        </>
       )}
     </Page>
   )
