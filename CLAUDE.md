@@ -48,7 +48,8 @@ Backend config comes from env vars / `backend/.env` (see `backend/.env.example`)
 - Per milestone or feature: branch `feature/<name>` off `main` (e.g. `feature/m0-scaffold`).
 - Per component: branch `<milestone>/<component>` off the feature branch (e.g. `m0/backend`). Test it and merge it into the feature branch with `--no-ff` — locally.
 - Merge the feature branch into `main` only when every component is merged and all checks are green.
-- Push to the remote (`origin`) only when a milestone/major feature is complete (feature branch + `main`), not after each component.
+- Push to the remote (`origin`) only when a milestone/major feature is complete, not after each component.
+- After the milestone is merged into `main` and pushed, delete all of its branches (component and feature, local and remote). Only `main` should remain between milestones.
 
 ## Test-First
 - Define the test cases before implementing any code: write the failing tests for a component first, then implement until they pass (see the `tdd` skill).

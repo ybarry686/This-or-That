@@ -1,10 +1,11 @@
-"""Database models for rooms, participants, and submissions."""
+"""Database models for rooms, participants, submissions, and the tournament."""
 
 import uuid
 from datetime import datetime
 from enum import StrEnum
 
 from sqlalchemy import (
+    Boolean,
     DateTime,
     Enum,
     ForeignKey,
@@ -28,6 +29,13 @@ class RoomStatus(StrEnum):
     IN_PROGRESS = "in_progress"
     FINISHED = "finished"
     EXPIRED = "expired"
+
+
+class MatchupStatus(StrEnum):
+    PENDING = "pending"  # not reached yet (or waiting for its slots to fill)
+    VOTING = "voting"  # open for the first vote
+    REVOTE = "revote"  # tied once; sudden-death revote open
+    DECIDED = "decided"  # has a winner (including byes)
 
 
 class Room(Base):
@@ -74,6 +82,14 @@ class Room(Base):
         passive_deletes=True,
         order_by="Submission.created_at",
     )
+    contenders: Mapped[list["Contender"]] = relationship(
+        cascade="all, delete-orphan", passive_deletes=True, order_by="Contender.position"
+    )
+    matchups: Mapped[list["Matchup"]] = relationship(
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+        order_by=lambda: [Matchup.round, Matchup.index],
+    )
 
 
 class Participant(Base):
@@ -106,3 +122,69 @@ class Submission(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
     room: Mapped[Room] = relationship(back_populates="submissions")
+
+
+class Contender(Base):
+    """An option frozen into the bracket when the tournament starts.
+
+    Its submissions (and so every submitter) are the room's submissions with the same `key`.
+    """
+
+    __tablename__ = "contenders"
+    __table_args__ = (UniqueConstraint("room_id", "key"),)
+
+    id: Mapped[str] = mapped_column(String(32), primary_key=True, default=new_id)
+    room_id: Mapped[str] = mapped_column(ForeignKey("rooms.id", ondelete="CASCADE"), index=True)
+    key: Mapped[str] = mapped_column(Text)
+    display_text: Mapped[str] = mapped_column(Text)
+    position: Mapped[int] = mapped_column(Integer, default=0)
+
+
+class Matchup(Base):
+    __tablename__ = "matchups"
+    __table_args__ = (UniqueConstraint("room_id", "round", "index"),)
+
+    id: Mapped[str] = mapped_column(String(32), primary_key=True, default=new_id)
+    room_id: Mapped[str] = mapped_column(ForeignKey("rooms.id", ondelete="CASCADE"), index=True)
+    round: Mapped[int] = mapped_column(Integer)
+    index: Mapped[int] = mapped_column(Integer)
+    contender_a_id: Mapped[str | None] = mapped_column(
+        ForeignKey("contenders.id", ondelete="CASCADE"), default=None
+    )
+    contender_b_id: Mapped[str | None] = mapped_column(
+        ForeignKey("contenders.id", ondelete="CASCADE"), default=None
+    )
+    winner_id: Mapped[str | None] = mapped_column(
+        ForeignKey("contenders.id", ondelete="CASCADE"), default=None
+    )
+    is_bye: Mapped[bool] = mapped_column(Boolean, default=False)
+    status: Mapped[MatchupStatus] = mapped_column(
+        Enum(MatchupStatus, name="matchup_status", values_callable=lambda e: [m.value for m in e]),
+        default=MatchupStatus.PENDING,
+    )
+    # How the winner was decided: "votes", "coin_flip", or "bye".
+    outcome: Mapped[str | None] = mapped_column(String(16), default=None)
+    # Tally of the most recently closed phase (the tie during a revote, the final result after).
+    votes_a: Mapped[int] = mapped_column(Integer, default=0)
+    votes_b: Mapped[int] = mapped_column(Integer, default=0)
+    # Voting window of the current phase. Votes are accepted from starts_at until ends_at.
+    starts_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), default=None)
+    ends_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), default=None)
+
+
+class Vote(Base):
+    """A participant's current choice in one phase (0 = vote, 1 = revote) of a matchup."""
+
+    __tablename__ = "votes"
+    __table_args__ = (UniqueConstraint("matchup_id", "participant_id", "phase"),)
+
+    id: Mapped[str] = mapped_column(String(32), primary_key=True, default=new_id)
+    matchup_id: Mapped[str] = mapped_column(
+        ForeignKey("matchups.id", ondelete="CASCADE"), index=True
+    )
+    participant_id: Mapped[str] = mapped_column(ForeignKey("participants.id", ondelete="CASCADE"))
+    contender_id: Mapped[str] = mapped_column(ForeignKey("contenders.id", ondelete="CASCADE"))
+    phase: Mapped[int] = mapped_column(Integer)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
+    )
