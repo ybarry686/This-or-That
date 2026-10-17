@@ -100,8 +100,72 @@ export function makeSnapshot(overrides: Partial<RoomSnapshot> = {}): RoomSnapsho
     option_count: 0,
     my_submissions: [],
     contenders: null,
+    tournament: null,
+    server_time: '2026-10-17T12:00:00+00:00',
     ...overrides,
   }
 }
 
 export const HOST_ME = { id: 'p-host', nickname: 'Host', avatar: 0, is_host: true, connected: true }
+
+type Tournament = NonNullable<RoomSnapshot['tournament']>
+type MatchupOut = Tournament['rounds'][number][number]
+
+export function makeMatchup(overrides: Partial<MatchupOut> & Pick<MatchupOut, 'id' | 'round' | 'index'>): MatchupOut {
+  return {
+    contender_a_id: null,
+    contender_b_id: null,
+    winner_id: null,
+    is_bye: false,
+    status: 'pending',
+    outcome: null,
+    votes_a: 0,
+    votes_b: 0,
+    ...overrides,
+  }
+}
+
+const SERVER_NOW = '2026-10-17T12:00:00+00:00'
+
+/**
+ * A 4-option tournament in its first matchup: Pizza vs Tacos (open), Sushi vs Ramen, then the final.
+ * The server clock sits at the start of a 30 s voting window.
+ */
+export function makeTournamentSnapshot(
+  overrides: Partial<RoomSnapshot> = {},
+  tournament: Partial<Tournament> = {},
+): RoomSnapshot {
+  return makeSnapshot({
+    status: 'in_progress',
+    option_count: 4,
+    server_time: SERVER_NOW,
+    tournament: {
+      contenders: [
+        { id: 'c-pizza', display_text: 'Pizza', submitter_ids: ['p-host'] },
+        { id: 'c-tacos', display_text: 'Tacos', submitter_ids: ['p-guest'] },
+        { id: 'c-sushi', display_text: 'Sushi', submitter_ids: ['p-host'] },
+        { id: 'c-ramen', display_text: 'Ramen', submitter_ids: ['p-guest'] },
+      ],
+      rounds: [
+        [
+          makeMatchup({ id: 'm1', round: 0, index: 0, contender_a_id: 'c-pizza', contender_b_id: 'c-tacos', status: 'voting' }),
+          makeMatchup({ id: 'm2', round: 0, index: 1, contender_a_id: 'c-sushi', contender_b_id: 'c-ramen' }),
+        ],
+        [makeMatchup({ id: 'm3', round: 1, index: 0 })],
+      ],
+      current: {
+        matchup_id: 'm1',
+        phase: 'vote',
+        starts_at: SERVER_NOW,
+        ends_at: '2026-10-17T12:00:30+00:00',
+        eligible_count: 2,
+        voted_participant_ids: [],
+        my_vote: null,
+        can_vote: true,
+      },
+      champion_id: null,
+      ...tournament,
+    },
+    ...overrides,
+  })
+}

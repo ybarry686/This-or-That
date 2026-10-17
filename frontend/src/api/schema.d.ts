@@ -158,6 +158,57 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/rooms/{code}/start": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Start Tournament */
+        post: operations["startTournament"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/rooms/{code}/votes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Cast Vote */
+        post: operations["castVote"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/rooms/{code}/matchups/{matchup_id}/close": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Close Matchup */
+        post: operations["closeMatchup"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/health": {
         parameters: {
             query?: never;
@@ -187,6 +238,10 @@ export interface components {
             text: string;
             /** Participant Id */
             participant_id: string;
+        };
+        /** CloseMatchupResponse */
+        CloseMatchupResponse: {
+            status: components["schemas"]["MatchupStatus"];
         };
         /** ContenderOut */
         ContenderOut: {
@@ -230,6 +285,34 @@ export interface components {
             /** Host Recovery Token */
             host_recovery_token: string;
         };
+        /** CurrentMatchup */
+        CurrentMatchup: {
+            /** Matchup Id */
+            matchup_id: string;
+            /**
+             * Phase
+             * @enum {string}
+             */
+            phase: "vote" | "revote";
+            /**
+             * Starts At
+             * Format: date-time
+             */
+            starts_at: string;
+            /**
+             * Ends At
+             * Format: date-time
+             */
+            ends_at: string;
+            /** Eligible Count */
+            eligible_count: number;
+            /** Voted Participant Ids */
+            voted_participant_ids: string[];
+            /** My Vote */
+            my_vote: string | null;
+            /** Can Vote */
+            can_vote: boolean;
+        };
         /** HTTPValidationError */
         HTTPValidationError: {
             /** Detail */
@@ -245,6 +328,35 @@ export interface components {
             /** Nickname */
             nickname: string;
         };
+        /** MatchupOut */
+        MatchupOut: {
+            /** Id */
+            id: string;
+            /** Round */
+            round: number;
+            /** Index */
+            index: number;
+            /** Contender A Id */
+            contender_a_id: string | null;
+            /** Contender B Id */
+            contender_b_id: string | null;
+            /** Winner Id */
+            winner_id: string | null;
+            /** Is Bye */
+            is_bye: boolean;
+            status: components["schemas"]["MatchupStatus"];
+            /** Outcome */
+            outcome: string | null;
+            /** Votes A */
+            votes_a: number;
+            /** Votes B */
+            votes_b: number;
+        };
+        /**
+         * MatchupStatus
+         * @enum {string}
+         */
+        MatchupStatus: "pending" | "voting" | "revote" | "decided";
         /** MergeContendersRequest */
         MergeContendersRequest: {
             /** Source Key */
@@ -316,6 +428,12 @@ export interface components {
             my_submissions: components["schemas"]["SubmissionOut"][];
             /** Contenders */
             contenders: components["schemas"]["ContenderOut"][] | null;
+            tournament: components["schemas"]["TournamentOut"] | null;
+            /**
+             * Server Time
+             * Format: date-time
+             */
+            server_time: string;
         };
         /**
          * RoomStatus
@@ -336,6 +454,10 @@ export interface components {
             /** Token */
             token: string;
         };
+        /** StartTournamentResponse */
+        StartTournamentResponse: {
+            status: components["schemas"]["RoomStatus"];
+        };
         /** SubmissionOut */
         SubmissionOut: {
             /** Id */
@@ -347,6 +469,25 @@ export interface components {
         SubmitOptionRequest: {
             /** Text */
             text: string;
+        };
+        /** TournamentContender */
+        TournamentContender: {
+            /** Id */
+            id: string;
+            /** Display Text */
+            display_text: string;
+            /** Submitter Ids */
+            submitter_ids: string[];
+        };
+        /** TournamentOut */
+        TournamentOut: {
+            /** Contenders */
+            contenders: components["schemas"]["TournamentContender"][];
+            /** Rounds */
+            rounds: components["schemas"]["MatchupOut"][][];
+            current: components["schemas"]["CurrentMatchup"] | null;
+            /** Champion Id */
+            champion_id: string | null;
         };
         /** TransferHostRequest */
         TransferHostRequest: {
@@ -378,6 +519,18 @@ export interface components {
             input?: unknown;
             /** Context */
             ctx?: Record<string, never>;
+        };
+        /** VoteRequest */
+        VoteRequest: {
+            /** Matchup Id */
+            matchup_id: string;
+            /** Contender Id */
+            contender_id: string;
+        };
+        /** VoteResponse */
+        VoteResponse: {
+            /** Contender Id */
+            contender_id: string;
         };
     };
     responses: never;
@@ -714,6 +867,104 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["SessionResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    startTournament: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                code: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StartTournamentResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    castVote: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                code: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["VoteRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VoteResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    closeMatchup: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                code: string;
+                matchup_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CloseMatchupResponse"];
                 };
             };
             /** @description Validation Error */
