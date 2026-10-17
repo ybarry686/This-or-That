@@ -2,7 +2,16 @@ import pytest
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 
-from app.models import Participant, Room, RoomStatus, Submission
+from app.models import (
+    Contender,
+    Matchup,
+    MatchupStatus,
+    Participant,
+    Room,
+    RoomStatus,
+    Submission,
+    Vote,
+)
 
 
 def make_room(session, code="ABC234", **kwargs) -> Room:
@@ -81,3 +90,70 @@ def test_room_host_relationship(session):
     session.flush()
 
     assert room.host.nickname == "Sam"
+
+
+def make_contender(session, room, key="pizza") -> Contender:
+    contender = Contender(room_id=room.id, key=key, display_text=key.title())
+    session.add(contender)
+    session.flush()
+    return contender
+
+
+def test_contender_key_is_unique_within_a_room(session):
+    room = make_room(session)
+    make_contender(session, room, "pizza")
+
+    with pytest.raises(IntegrityError):
+        make_contender(session, room, "pizza")
+
+
+def test_matchup_defaults_and_position_uniqueness(session):
+    room = make_room(session)
+    a, b = make_contender(session, room, "a"), make_contender(session, room, "b")
+    matchup = Matchup(room_id=room.id, round=0, index=0, contender_a_id=a.id, contender_b_id=b.id)
+    session.add(matchup)
+    session.flush()
+
+    assert matchup.status is MatchupStatus.PENDING
+    assert (matchup.votes_a, matchup.votes_b) == (0, 0)
+    assert matchup.winner_id is None and matchup.outcome is None
+    assert matchup.is_bye is False
+
+    session.add(Matchup(room_id=room.id, round=0, index=0))
+    with pytest.raises(IntegrityError):
+        session.flush()
+
+
+def test_one_vote_per_participant_per_phase(session):
+    room = make_room(session)
+    voter = make_participant(session, room)
+    a, b = make_contender(session, room, "a"), make_contender(session, room, "b")
+    matchup = Matchup(room_id=room.id, round=0, index=0, contender_a_id=a.id, contender_b_id=b.id)
+    session.add(matchup)
+    session.flush()
+
+    session.add(Vote(matchup_id=matchup.id, participant_id=voter.id, contender_id=a.id, phase=0))
+    session.add(Vote(matchup_id=matchup.id, participant_id=voter.id, contender_id=b.id, phase=1))
+    session.flush()
+
+    session.add(Vote(matchup_id=matchup.id, participant_id=voter.id, contender_id=b.id, phase=0))
+    with pytest.raises(IntegrityError):
+        session.flush()
+
+
+def test_deleting_room_cascades_tournament_rows(session):
+    room = make_room(session)
+    voter = make_participant(session, room)
+    a, b = make_contender(session, room, "a"), make_contender(session, room, "b")
+    matchup = Matchup(room_id=room.id, round=0, index=0, contender_a_id=a.id, contender_b_id=b.id)
+    session.add(matchup)
+    session.flush()
+    session.add(Vote(matchup_id=matchup.id, participant_id=voter.id, contender_id=a.id, phase=0))
+    session.flush()
+
+    session.delete(room)
+    session.flush()
+
+    assert session.scalars(select(Contender)).all() == []
+    assert session.scalars(select(Matchup)).all() == []
+    assert session.scalars(select(Vote)).all() == []
