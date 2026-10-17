@@ -2,6 +2,7 @@ import { useMutation } from '@tanstack/react-query'
 import { motion } from 'motion/react'
 import { useEffect, useMemo, useState } from 'react'
 import { api, type RoomSnapshot } from '../api/client'
+import { audio } from '../audio'
 import { Card, ErrorMessage, subtleButtonClass } from './ui'
 
 type Tournament = NonNullable<RoomSnapshot['tournament']>
@@ -79,8 +80,16 @@ function CurrentMatchup({
 
   const vote = useMutation({
     mutationFn: (contenderId: string) => api.castVote(snapshot.code, token, matchup.id, contenderId),
+    onMutate: () => {
+      audio.play('vote')
+    },
     onSuccess: onChanged,
   })
+
+  // Tick through the last three seconds of voting.
+  useEffect(() => {
+    if (open && endsIn <= 3) audio.play('tick')
+  }, [open, endsIn])
   const close = useMutation({
     mutationFn: () => api.closeMatchup(snapshot.code, token, matchup.id),
     onSuccess: onChanged,
