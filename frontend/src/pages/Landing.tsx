@@ -9,8 +9,12 @@ export default function Landing() {
   return (
     <Page>
       <header className="text-center">
-        <h1 className="text-5xl font-black tracking-widest">THIS OR THAT</h1>
-        <p className="mt-2 text-zinc-400">Settle it with a tournament.</p>
+        <h1 aria-label="This or That" className="font-arcade text-3xl leading-tight sm:text-5xl">
+          <span className="arcade-glow text-p1">THIS</span>{' '}
+          <span className="align-middle text-sm text-coin sm:text-base">OR</span>{' '}
+          <span className="arcade-glow text-p2">THAT</span>
+        </h1>
+        <p className="mt-4 font-arcade text-[10px] leading-relaxed tracking-widest text-dim uppercase">Settle it with a tournament</p>
       </header>
       <CreateRoomForm />
       <JoinByCodeForm />
@@ -52,7 +56,7 @@ function CreateRoomForm() {
 
   return (
     <Card>
-      <h2 className="mb-4 text-xl font-bold">Create a room</h2>
+      <h2 className="mb-3 font-arcade text-xs leading-relaxed tracking-wider text-coin uppercase">Create a room</h2>
       <form onSubmit={onSubmit} className="flex flex-col gap-3">
         <label className="flex flex-col gap-1 text-sm">
           Question
@@ -111,7 +115,7 @@ function JoinByCodeForm() {
 
   return (
     <Card>
-      <h2 className="mb-4 text-xl font-bold">Join a room</h2>
+      <h2 className="mb-3 font-arcade text-xs leading-relaxed tracking-wider text-coin uppercase">Join a room</h2>
       <form onSubmit={onSubmit} className="flex gap-3">
         <label className="flex flex-1 flex-col gap-1 text-sm">
           Room code

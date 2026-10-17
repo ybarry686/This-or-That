@@ -48,7 +48,7 @@ function JoinForm({ code, onJoined }: { code: string; onJoined: (session: Stored
   return (
     <Page>
       <Card>
-        <h1 className="mb-4 text-2xl font-bold">Join room {code}</h1>
+        <h1 className="mb-4 font-arcade text-sm leading-relaxed text-coin sm:text-base">Join room {code}</h1>
         <form onSubmit={onSubmit} className="flex flex-col gap-3">
           <label className="flex flex-col gap-1 text-sm">
             Your nickname

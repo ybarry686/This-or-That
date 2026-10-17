@@ -158,6 +158,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/rooms/{code}/results": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Results */
+        get: operations["getResults"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/rooms/{code}/rematch": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Create Rematch */
+        post: operations["createRematch"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/rooms/{code}/start": {
         parameters: {
             query?: never;
@@ -377,6 +411,15 @@ export interface components {
             /** Connected */
             connected: boolean;
         };
+        /** PublicParticipant */
+        PublicParticipant: {
+            /** Id */
+            id: string;
+            /** Nickname */
+            nickname: string;
+            /** Avatar */
+            avatar: number;
+        };
         /** RecoverHostRequest */
         RecoverHostRequest: {
             /** Recovery Token */
@@ -386,6 +429,28 @@ export interface components {
         RemoveContenderRequest: {
             /** Key */
             key: string;
+        };
+        /**
+         * ResultsOut
+         * @description Read-only results of a finished game, viewable by anyone with the room code.
+         */
+        ResultsOut: {
+            /** Code */
+            code: string;
+            /** Title */
+            title: string;
+            /** Description */
+            description: string;
+            /**
+             * Finished At
+             * Format: date-time
+             */
+            finished_at: string;
+            /** Participants */
+            participants: components["schemas"]["PublicParticipant"][];
+            tournament: components["schemas"]["TournamentOut"];
+            /** Rematch Code */
+            rematch_code: string | null;
         };
         /** RoomSettings */
         RoomSettings: {
@@ -434,6 +499,10 @@ export interface components {
              * Format: date-time
              */
             server_time: string;
+            /** Finished At */
+            finished_at: string | null;
+            /** Rematch Code */
+            rematch_code: string | null;
         };
         /**
          * RoomStatus
@@ -867,6 +936,68 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["SessionResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    getResults: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                code: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ResultsOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    createRematch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                code: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CreateRoomResponse"];
                 };
             };
             /** @description Validation Error */
