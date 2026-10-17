@@ -74,13 +74,19 @@ class RoomHub:
     def cancel(self, key: str) -> None:
         task = self._timers.pop(key, None)
         if task is not None:
-            task.cancel()
+            _cancel(task)
 
     def reset(self) -> None:
         for task in self._timers.values():
-            task.cancel()
+            _cancel(task)
         self._timers.clear()
         self._sockets.clear()
+
+
+def _cancel(task: asyncio.Task) -> None:
+    # A timer created on an event loop that has since closed cannot (and need not) be cancelled.
+    with contextlib.suppress(RuntimeError):
+        task.cancel()
 
 
 hub = RoomHub()
