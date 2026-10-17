@@ -88,6 +88,19 @@ export const api = {
       token,
       body: { participant_id: participantId },
     }),
+  startTournament: (code: string, token: string) =>
+    request<Schemas['StartTournamentResponse']>('POST', `${room(code)}/start`, { token }),
+  castVote: (code: string, token: string, matchupId: string, contenderId: string) =>
+    request<Schemas['VoteResponse']>('POST', `${room(code)}/votes`, {
+      token,
+      body: { matchup_id: matchupId, contender_id: contenderId },
+    }),
+  closeMatchup: (code: string, token: string, matchupId: string) =>
+    request<Schemas['CloseMatchupResponse']>(
+      'POST',
+      `${room(code)}/matchups/${encodeURIComponent(matchupId)}/close`,
+      { token },
+    ),
   recoverHost: (code: string, recoveryToken: string) =>
     request<SessionResponse>('POST', `${room(code)}/host/recover`, {
       body: { recovery_token: recoveryToken },

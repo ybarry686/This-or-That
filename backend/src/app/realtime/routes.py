@@ -13,6 +13,7 @@ from app.errors import AppError, NotFound
 from app.models import Room, RoomStatus
 from app.realtime.hub import event, hub
 from app.rooms import service
+from app.tournament import timers
 
 router = APIRouter()
 
@@ -102,6 +103,9 @@ async def _on_last_disconnect(room_id: str, participant_id: str) -> None:
             hub.host_grace_seconds,
             lambda: _hand_off_host(room_id, participant_id),
         )
+    elif not in_lobby:
+        # Everyone still connected may now have voted.
+        await timers.check_everyone_voted(room_id)
 
 
 def _current_version(room_id: str) -> int:

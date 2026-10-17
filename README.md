@@ -23,7 +23,7 @@ A host creates a room around a question and shares a 6-character code. Friends j
 
 The backend is authoritative: clients only *ask* to do things, and the server decides outcomes, so everyone always sees the same bracket, the same votes, and the same winner.
 
-> **Project status:** milestones **M0–M2** are complete — rooms, guest identity, the lobby, real-time updates, and the full tournament engine. Live voting (M3) and the retro-arcade presentation (M4) are next. See [Roadmap](#roadmap).
+> **Project status:** milestones **M0–M3** are complete — a full game is playable end to end: rooms, guest identity, the lobby, live head-to-head voting, ties, and the champion. The retro-arcade presentation and results page (M4) are next. See [Roadmap](#roadmap).
 
 ## Key Features
 
@@ -37,11 +37,16 @@ The backend is authoritative: clients only *ask* to do things, and the server de
 - **Live lobby** — joins, presence (online/offline), submissions and settings changes stream to every device instantly over WebSockets, with automatic reconnect and catch-up
 - **Host hand-off** — if the host disappears from the lobby for 2 minutes, the longest-present connected player takes over
 - **Tournament engine** — seeded, reproducible brackets for 2–64 options with evenly spread byes, one-at-a-time play, and a tie rule that can never stall the bracket
+- **Live voting** — the whole room votes on one matchup at a time with a server-owned countdown; you see *who* has voted ("1/2 voted") but not the split until it closes; votes can be changed until then; vote with a click or the keyboard (← → or 1 2)
+- **Early close** — a matchup ends as soon as everyone connected has voted, when the timer runs out, or when the host ends it
+- **Ties that never stall** — a 15-second sudden-death revote, then a server-side coin flip
+- **Bracket and champion** — the bracket fills in as winners advance, with the last result ("Pizza beat Tacos 2–1") and a champion at the end
+- **Survives restarts** — deadlines are stored in the database and re-armed when the server starts
 
 **Coming next**
 
-- Live head-to-head voting with server-owned timers, "7/10 voted" progress, and KO-style reveals (M3)
 - Retro arcade look — pixel headings, CRT glow, VS slams, 8-bit sound (muted by default), reduced-motion support (M4)
+- KO-style reveals, VS transitions, and a champion celebration (M4)
 - Shareable read-only results page (M4)
 
 ## How a Game Works
@@ -57,7 +62,7 @@ The backend is authoritative: clients only *ask* to do things, and the server de
  duplicates ─────────┘          ...one at a time, round by round ◀┘
 ```
 
-Voting rules (implemented in M3):
+Voting rules:
 
 | Rule | Behavior |
 |---|---|
@@ -66,6 +71,7 @@ Voting rules (implemented in M3):
 | **Ties** | one 15 s sudden-death revote, then a server-side coin flip |
 | **Late joiners** | can vote from the next matchup; can't submit |
 | **Disconnects** | never block a matchup — the timer always resolves it |
+| **Reveal pause** | 5 s after each result before the next vote opens |
 
 The complete rule set lives in [SPEC.md](SPEC.md).
 
@@ -157,11 +163,14 @@ All endpoints except create, join and recover require `Authorization: Bearer <pa
 | `POST` | `/rooms/{code}/contenders/remove` | host | Remove an option |
 | `POST` | `/rooms/{code}/host/transfer` | host | Hand the host role to another player |
 | `POST` | `/rooms/{code}/host/recover` | recovery token | Reclaim the host role |
+| `POST` | `/rooms/{code}/start` | host | Freeze options, generate the bracket, open the first matchup |
+| `POST` | `/rooms/{code}/votes` | eligible participant | Cast or change a vote on the open matchup |
+| `POST` | `/rooms/{code}/matchups/{id}/close` | host | End the open vote (or revote) now |
 | `WS` | `/rooms/{code}/ws?token=…` | participant | Real-time events |
 
 Interactive docs are served at **http://localhost:8000/docs** while the API is running.
 
-**WebSocket events:** `welcome`, `participant_joined`, `participant_connected`, `participant_disconnected`, `settings_changed`, `submissions_changed`, `host_changed`. Close codes: `4401` invalid token, `4404` unknown room.
+**WebSocket events:** `welcome`, `participant_joined`, `participant_connected`, `participant_disconnected`, `settings_changed`, `submissions_changed`, `host_changed`, `tournament_started`, `matchup_opened`, `vote_cast`, `revote_started`, `matchup_decided`, `round_started`, `champion_crowned`. Close codes: `4401` invalid token, `4404` unknown room.
 
 **Room settings**
 
@@ -230,8 +239,8 @@ cd frontend && pnpm lint && pnpm typecheck && pnpm build
 
 | Suite | Tests | Covers |
 |---|---|---|
-| Backend | 270 | tournament engine (all sizes 2–64), permissions, validation, snapshots, events, presence, host hand-off, migrations, parallel submissions |
-| Frontend | 30 | create/join flows, lobby, host panel, session storage, API client, WebSocket refresh and reconnect |
+| Backend | 312 | tournament engine (all sizes 2–64), permissions, validation, snapshots, events, presence, host hand-off, voting, ties, champion, deadlines, restart recovery, migrations, parallel submissions/votes/closes |
+| Frontend | 47 | create/join flows, lobby, host panel, start, voting (click + keyboard), countdowns, revote, bracket, champion, session storage, API client, WebSocket refresh and reconnect |
 
 GitHub Actions runs every suite (with a PostgreSQL service) on each push.
 
@@ -259,7 +268,7 @@ This-or-That/
 │   │   ├── main.py              # App factory, routers, error handling
 │   │   ├── config.py            # Settings (env vars / .env)
 │   │   ├── db.py                # SQLAlchemy engine + session
-│   │   ├── models.py            # Room, Participant, Submission
+│   │   ├── models.py            # Room, Participant, Submission, Contender, Matchup, Vote
 │   │   ├── security.py          # Token generation + hashing
 │   │   ├── errors.py            # Domain errors → HTTP status codes
 │   │   ├── engine/              # Pure tournament logic
@@ -269,6 +278,11 @@ This-or-That/
 │   │   ├── rooms/               # Lobby REST API
 │   │   │   ├── schemas.py       #   request/response models
 │   │   │   ├── service.py       #   business rules
+│   │   │   └── routes.py        #   endpoints + event publishing
+│   │   ├── tournament/          # Tournament play
+│   │   │   ├── service.py       #   start, vote, close, advance the bracket
+│   │   │   ├── snapshot.py      #   per-viewer tournament state
+│   │   │   ├── timers.py        #   voting deadlines + restart recovery
 │   │   │   └── routes.py        #   endpoints + event publishing
 │   │   └── realtime/            # WebSockets
 │   │       ├── hub.py           #   socket registry, broadcast, timers
@@ -280,7 +294,7 @@ This-or-That/
 │   └── src/
 │       ├── api/                 # Typed client + generated schema.d.ts
 │       ├── pages/               # Landing, RoomPage, Recover
-│       ├── components/          # Lobby, HostPanel, shared UI
+│       ├── components/          # Lobby, HostPanel, Tournament, shared UI
 │       ├── realtime.ts          # WebSocket hook with reconnect
 │       ├── session.ts           # Per-room identity in localStorage
 │       └── test/                # Fetch/WebSocket fakes, render helpers
@@ -298,8 +312,8 @@ This-or-That/
 | **M0** | Scaffold: monorepo, Docker Compose, CI | ✅ Done |
 | **M1** | Tournament engine: normalization, bracket, tally | ✅ Done |
 | **M2** | Rooms, guest identity, lobby, real-time sync | ✅ Done |
-| **M3** | Live voting, matchup flow, ties, champion | ⏳ Next |
-| **M4** | Retro arcade UI, animations, sound, results page | Planned |
+| **M3** | Live voting, matchup flow, ties, champion | ✅ Done |
+| **M4** | Retro arcade UI, animations, sound, results page | ⏳ Next |
 | **v2** | Tiebreaker mini-games, image options, public rooms, presenter view | Later |
 
 Details and acceptance criteria are in [PLAN.md](PLAN.md).

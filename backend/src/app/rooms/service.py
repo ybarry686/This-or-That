@@ -6,6 +6,7 @@ changes to one room are serialized and clients can detect missed updates.
 
 import secrets
 from dataclasses import dataclass
+from datetime import UTC, datetime
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -16,6 +17,7 @@ from app.errors import Conflict, Forbidden, Invalid, NotFound, Unauthorized
 from app.models import Participant, Room, RoomStatus, Submission
 from app.rooms import schemas
 from app.security import hash_token, new_token
+from app.tournament.snapshot import build_tournament
 
 CODE_ALPHABET = "ABCDEFGHJKMNPQRSTUVWXYZ23456789"
 CODE_LENGTH = 6
@@ -65,7 +67,7 @@ def authenticate(session: Session, room: Room, token: str | None) -> Participant
     return participant
 
 
-def _require_host(room: Room, participant: Participant) -> None:
+def require_host(room: Room, participant: Participant) -> None:
     if room.host_participant_id != participant.id:
         raise Forbidden("Only the host can do that.")
 
@@ -138,7 +140,7 @@ def update_room(
     session: Session, code: str, token: str | None, request: schemas.UpdateRoomRequest
 ) -> Room:
     room = load_room(session, code, lock=True)
-    _require_host(room, authenticate(session, room, token))
+    require_host(room, authenticate(session, room, token))
     _require_lobby(room, "Changing settings")
 
     changes = request.model_dump(exclude_none=True)
@@ -215,7 +217,7 @@ def merge_contenders(
     session: Session, code: str, token: str | None, source_key: str, target_key: str
 ) -> Room:
     room = load_room(session, code, lock=True)
-    _require_host(room, authenticate(session, room, token))
+    require_host(room, authenticate(session, room, token))
     _require_lobby(room, "Merging options")
     if source_key == target_key:
         raise Invalid("Cannot merge an option into itself.")
@@ -230,7 +232,7 @@ def merge_contenders(
 
 def remove_contender(session: Session, code: str, token: str | None, key: str) -> Room:
     room = load_room(session, code, lock=True)
-    _require_host(room, authenticate(session, room, token))
+    require_host(room, authenticate(session, room, token))
     _require_lobby(room, "Removing options")
 
     for submission in _submissions_with_key(room, key):
@@ -242,7 +244,7 @@ def remove_contender(session: Session, code: str, token: str | None, key: str) -
 
 def transfer_host(session: Session, code: str, token: str | None, participant_id: str) -> Room:
     room = load_room(session, code, lock=True)
-    _require_host(room, authenticate(session, room, token))
+    require_host(room, authenticate(session, room, token))
     if not any(p.id == participant_id for p in room.participants):
         raise NotFound("Participant not found in this room.")
 
@@ -303,7 +305,7 @@ def hand_off_host(
     return room
 
 
-def _contenders(room: Room):
+def lobby_contenders(room: Room):
     return merge_submissions(
         [EngineSubmission(s.id, s.participant_id, s.text, key=s.key) for s in room.submissions]
     )
@@ -327,7 +329,7 @@ def _participant_out(
 
 def build_snapshot(room: Room, me: Participant, connected_ids: set[str]) -> schemas.RoomSnapshot:
     contenders = None
-    if me.id == room.host_participant_id:
+    if room.status is RoomStatus.LOBBY and me.id == room.host_participant_id:
         by_id = {s.id: s for s in room.submissions}
         contenders = [
             schemas.ContenderOut(
@@ -340,7 +342,7 @@ def build_snapshot(room: Room, me: Participant, connected_ids: set[str]) -> sche
                     for sid in c.submission_ids
                 ],
             )
-            for c in _contenders(room)
+            for c in lobby_contenders(room)
         ]
 
     return schemas.RoomSnapshot(
@@ -364,4 +366,6 @@ def build_snapshot(room: Room, me: Participant, connected_ids: set[str]) -> sche
             if s.participant_id == me.id
         ],
         contenders=contenders,
+        tournament=build_tournament(room, me),
+        server_time=datetime.now(UTC),
     )
