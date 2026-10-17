@@ -18,7 +18,11 @@
 
 html {
   color-scheme: dark;
-  background: var(--color-ink);
+  min-height: 100%;
+  background:
+    radial-gradient(ellipse at top, rgb(46 197 255 / 0.12), transparent 60%),
+    radial-gradient(ellipse at bottom, rgb(255 59 92 / 0.12), transparent 60%),
+    var(--color-ink);
 }
 
 body {
@@ -26,11 +30,6 @@ body {
   min-height: 100vh;
   font-family: var(--font-sans);
   color: #f2f2ff;
-  background:
-    radial-gradient(ellipse at top, rgb(46 197 255 / 0.12), transparent 60%),
-    radial-gradient(ellipse at bottom, rgb(255 59 92 / 0.12), transparent 60%),
-    var(--color-ink);
-  background-attachment: fixed;
 }
 
 /* Glowing pixel text. */
