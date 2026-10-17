@@ -1,10 +1,11 @@
 """Request and response models for the rooms API."""
 
-from typing import Annotated
+from datetime import datetime
+from typing import Annotated, Literal
 
 from pydantic import BaseModel, Field, StringConstraints
 
-from app.models import RoomStatus
+from app.models import MatchupStatus, RoomStatus
 
 Title = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=120)]
 Description = Annotated[str, StringConstraints(strip_whitespace=True, max_length=500)]
@@ -98,6 +99,62 @@ class ParticipantOut(BaseModel):
     connected: bool
 
 
+class TournamentContender(BaseModel):
+    id: str
+    display_text: str
+    submitter_ids: list[str]
+
+
+class MatchupOut(BaseModel):
+    id: str
+    round: int
+    index: int
+    contender_a_id: str | None
+    contender_b_id: str | None
+    winner_id: str | None
+    is_bye: bool
+    status: MatchupStatus
+    outcome: str | None
+    # Tally of the last closed phase: the tie during a revote, the final result once decided.
+    votes_a: int
+    votes_b: int
+
+
+class CurrentMatchup(BaseModel):
+    matchup_id: str
+    phase: Literal["vote", "revote"]
+    starts_at: datetime
+    ends_at: datetime
+    eligible_count: int
+    voted_participant_ids: list[str]
+    my_vote: str | None
+    can_vote: bool
+
+
+class TournamentOut(BaseModel):
+    contenders: list[TournamentContender]
+    rounds: list[list[MatchupOut]]
+    current: CurrentMatchup | None
+    champion_id: str | None
+
+
+class StartTournamentResponse(BaseModel):
+    status: RoomStatus
+
+
+class VoteRequest(BaseModel):
+    matchup_id: str
+    contender_id: str
+
+
+class VoteResponse(BaseModel):
+    contender_id: str
+
+
+class CloseMatchupResponse(BaseModel):
+    status: MatchupStatus
+
+
 class RoomSnapshot(BaseModel):
     code: str
     title: str
@@ -112,3 +169,7 @@ class RoomSnapshot(BaseModel):
     my_submissions: list[SubmissionOut]
     # Only the host sees every option during the lobby; null for everyone else.
     contenders: list[ContenderOut] | None
+    # The bracket, once the tournament has started; null in the lobby.
+    tournament: TournamentOut | None
+    # Server clock, so clients can render countdowns to `ends_at` despite clock skew.
+    server_time: datetime

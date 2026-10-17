@@ -167,9 +167,13 @@ class Matchup(Base):
     # Tally of the most recently closed phase (the tie during a revote, the final result after).
     votes_a: Mapped[int] = mapped_column(Integer, default=0)
     votes_b: Mapped[int] = mapped_column(Integer, default=0)
+    # When the matchup first opened: only participants who joined by then may vote in it.
+    opened_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), default=None)
     # Voting window of the current phase. Votes are accepted from starts_at until ends_at.
     starts_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), default=None)
     ends_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), default=None)
+
+    votes: Mapped[list["Vote"]] = relationship(cascade="all, delete-orphan", passive_deletes=True)
 
 
 class Vote(Base):

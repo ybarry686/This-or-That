@@ -51,6 +51,7 @@ def upgrade() -> None:
         sa.Column("outcome", sa.String(length=16), nullable=True),
         sa.Column("votes_a", sa.Integer(), nullable=False),
         sa.Column("votes_b", sa.Integer(), nullable=False),
+        sa.Column("opened_at", sa.DateTime(timezone=True), nullable=True),
         sa.Column("starts_at", sa.DateTime(timezone=True), nullable=True),
         sa.Column("ends_at", sa.DateTime(timezone=True), nullable=True),
         sa.ForeignKeyConstraint(["contender_a_id"], ["contenders.id"], ondelete="CASCADE"),
