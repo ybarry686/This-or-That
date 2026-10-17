@@ -63,6 +63,10 @@ class Room(Base):
         ),
         default=None,
     )
+    # When the champion was crowned; finished rooms are deleted 30 days later.
+    finished_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), default=None)
+    # Code of the rematch room created from this one, if any.
+    rematch_code: Mapped[str | None] = mapped_column(String(6), default=None)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
