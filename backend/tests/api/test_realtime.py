@@ -207,3 +207,34 @@ class TestHostHandoff:
         time.sleep(0.5)
 
         assert snapshot(code, room["token"])["me"]["is_host"] is True
+
+
+class TestAbandonedSockets:
+    def test_socket_that_dies_before_welcome_still_announces_and_cleans_up(
+        self, client, lobby, snapshot, monkeypatch
+    ):
+        """A client that vanishes right after connecting (e.g. React StrictMode's double mount
+        through a proxy) must not swallow the 'connected' event or stay registered forever."""
+        from starlette.websockets import WebSocket
+
+        code, room, guest = lobby
+        real_send_json = WebSocket.send_json
+
+        async def failing_welcome(self, data, mode="text"):
+            if data.get("type") == "welcome" and self.query_params.get("token") == guest["token"]:
+                raise RuntimeError("client went away")
+            return await real_send_json(self, data, mode)
+
+        with connect(client, code, room["token"]) as host_ws:
+            host_ws.receive_json()
+            monkeypatch.setattr(WebSocket, "send_json", failing_welcome)
+            with connect(client, code, guest["token"]):
+                # The guest's welcome fails; others still hear it arrive, then leave.
+                assert host_ws.receive_json()["type"] == "participant_connected"
+                assert host_ws.receive_json()["type"] == "participant_disconnected"
+            monkeypatch.setattr(WebSocket, "send_json", real_send_json)
+
+        guest_entry = next(
+            p for p in snapshot(code, room["token"])["participants"] if p["nickname"] == "Sam"
+        )
+        assert guest_entry["connected"] is False
