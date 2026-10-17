@@ -131,11 +131,12 @@ During a matchup, eligible participants vote for one of the two options.
 - **One vote per participant per matchup.** A participant may **change their vote** until voting closes; the last vote counts.
 - Votes are bound to the room, round, and matchup.
 - Merged duplicate submissions do not grant extra votes; votes are per participant, not per submission.
-- **Eligibility:** any participant present when the matchup opens. Late joiners become eligible from the next matchup that opens.
+- **Eligibility:** any participant present when the matchup first opens. Late joiners become eligible from the next matchup that opens. A revote keeps the matchup's original eligibility.
+- **Reveal pause:** after the bracket drops and after each result, the next voting window opens 5 s later (server setting `reveal_seconds`) so everyone sees the outcome. Clients show "voting opens in Ns".
 - **Voting closes** when the first of these happens:
   1. Every *connected* eligible participant has voted.
   2. The vote timer expires (default 30 s).
-  3. The host force-closes it.
+  3. The host force-closes it (allowed at any time while the matchup is open).
 - Eligible participants who did not vote **abstain**; abstentions are not counted.
 - The winner is the option with more votes. Ties go to §8.
 - **Live display:** during voting, clients see only progress ("7/10 voted", with avatars lighting up) — not the split. The tally is revealed at close.
@@ -164,7 +165,9 @@ Tiebreakers will become separate, modular game modes, each specifying inputs, el
 - **Connection:** `ws(s)://<host>/rooms/<code>/ws?token=<participant token>` (browsers cannot set auth headers on WebSockets). Invalid tokens close with code `4401`, unknown rooms with `4404`. The first message is `welcome` with the current version. Lobby events never include option texts, only the option count.
 - **Timers:** owned by the server and sent as absolute deadlines (`ends_at`). Clients only render countdowns.
 
-Events include: participant joined/left/connected/disconnected, host changed, settings changed, submission count changed, tournament started (bracket drop), matchup opened, vote progress changed, matchup closed (with tally), revote started, coin flip, round advanced, champion announced.
+Events: `participant_joined`, `participant_connected`, `participant_disconnected`, `host_changed`, `settings_changed`, `submissions_changed`, `tournament_started`, `matchup_opened`, `vote_cast` (count only, never the choice), `revote_started` (with the tied tally), `matchup_decided` (winner, tally, outcome `votes` or `coin_flip`), `round_started`, `champion_crowned`.
+
+The snapshot includes `server_time` so clients can render countdowns correctly even when the device clock is wrong.
 
 ## 10. User Experience and Visual Design
 

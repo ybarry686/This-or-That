@@ -2,7 +2,7 @@
 
 Product requirements live in [SPEC.md](SPEC.md). This file tracks delivery order and status. Each milestone must meet the Definition of Done (SPEC §14) before the next one starts.
 
-**Current milestone:** M3 — not started (M0, M1, M2 done)
+**Current milestone:** M4 — not started (M0–M3 done)
 
 ## M0 — Scaffold
 **Goal:** an empty but runnable monorepo.
@@ -60,16 +60,21 @@ Exhaustive parametrized tests over N = 2–64 stand in for property-based tests 
 ## M3 — Live voting & matchup flow
 **Goal:** play a full tournament from start to champion (SPEC §6–§8).
 
-- [ ] Start tournament: freeze contenders, generate the bracket from the stored seed, bracket-drop event.
-- [ ] Matchup lifecycle with server-owned `ends_at` timers.
-- [ ] Voting: one per participant, changeable until close, eligibility and late joins.
-- [ ] Close rules: all connected voted / timer / host force — idempotent resolution.
-- [ ] Tie revote (15 s) and coin flip.
-- [ ] Round advancement and champion; room → `finished`.
-- [ ] Timer recovery after a server restart.
-- [ ] Frontend: matchup screen with voted-progress, bracket view, revote/coin-flip, champion screen.
+- [x] Start tournament: freeze contenders, generate the bracket from the stored seed, bracket-drop event.
+- [x] Matchup lifecycle with server-owned `ends_at` timers.
+- [x] Voting: one per participant, changeable until close, eligibility and late joins.
+- [x] Close rules: all connected voted / timer / host force — idempotent resolution.
+- [x] Tie revote (15 s) and coin flip.
+- [x] Round advancement and champion; room → `finished`.
+- [x] Timer recovery after a server restart.
+- [x] Frontend: matchup screen with voted-progress, bracket view, revote/coin-flip, champion screen.
 
 **Acceptance:** a tournament with byes, ties, disconnects, and late joiners completes correctly; concurrency tests show no double votes or double resolutions.
+
+**Status:** ✅ Done (2026-10-17) — 312 backend tests and 47 frontend tests passing. Verified end to end on Docker Compose: a two-player, 4-submission game (one merged duplicate → 3 contenders, one bye) played through the web proxy over WebSockets, closing each matchup early once both had voted, to a champion with events in order. Not yet clicked through by hand in two real browsers.
+- Backend: models `Contender`, `Matchup`, `Vote` (migration `0003`); `app/tournament/` — `service` (start, vote, close phase, advance via the engine), `snapshot` (per-viewer tournament section), `timers` (deadlines, disconnect re-check, startup recovery), `routes`.
+- Frontend: `components/Tournament.tsx` (matchup card, countdown on server clock, keyboard voting, revote banner, last result, bracket, champion); start button in `HostPanel`.
+- Choices made during build (also in SPEC): a 5 s reveal pause before each voting window (`reveal_seconds`); eligibility is fixed when a matchup first opens and carries over to its revote; the host may close the open phase at any time.
 
 ## M4 — Arcade polish & results
 **Goal:** the retro arcade experience (SPEC §10) and post-game features (SPEC §4 lifecycle).
