@@ -8,9 +8,39 @@ type Props = { snapshot: RoomSnapshot; token: string; onChanged: () => void }
 export default function HostPanel(props: Props) {
   return (
     <>
+      <StartTournament {...props} />
       <AllOptions {...props} />
       <SettingsForm {...props} />
     </>
+  )
+}
+
+const MIN_OPTIONS = 2
+
+function StartTournament({ snapshot, token, onChanged }: Props) {
+  const start = useMutation({
+    mutationFn: () => api.startTournament(snapshot.code, token),
+    onSuccess: onChanged,
+  })
+  const ready = snapshot.option_count >= MIN_OPTIONS
+
+  return (
+    <Card>
+      <button
+        type="button"
+        className={`${buttonClass} w-full text-lg`}
+        disabled={!ready || start.isPending}
+        onClick={() => start.mutate()}
+      >
+        Start tournament
+      </button>
+      <p className="mt-2 text-center text-sm text-zinc-400">
+        {ready
+          ? 'Submissions close when the tournament starts.'
+          : `Need at least ${MIN_OPTIONS} options to start.`}
+      </p>
+      <ErrorMessage error={start.error} />
+    </Card>
   )
 }
 

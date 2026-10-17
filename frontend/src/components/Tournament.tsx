@@ -1,0 +1,241 @@
+import { useMutation } from '@tanstack/react-query'
+import { useEffect, useMemo, useState } from 'react'
+import { api, type RoomSnapshot } from '../api/client'
+import { Card, ErrorMessage, buttonClass, subtleButtonClass } from './ui'
+
+type Tournament = NonNullable<RoomSnapshot['tournament']>
+type MatchupOut = Tournament['rounds'][number][number]
+type Props = { snapshot: RoomSnapshot; token: string; onChanged: () => void }
+
+export default function Tournament({ snapshot, token, onChanged }: Props) {
+  const tournament = snapshot.tournament!
+  const names = useMemo(
+    () => new Map(tournament.contenders.map((c) => [c.id, c.display_text])),
+    [tournament.contenders],
+  )
+
+  return (
+    <>
+      {tournament.champion_id && (
+        <Card>
+          <h2 className="text-center text-3xl font-black">Champion: {names.get(tournament.champion_id)}</h2>
+        </Card>
+      )}
+      {tournament.current && (
+        <CurrentMatchup snapshot={snapshot} names={names} token={token} onChanged={onChanged} />
+      )}
+      <LastResult tournament={tournament} names={names} />
+      <Bracket tournament={tournament} names={names} />
+    </>
+  )
+}
+
+/**
+ * "Now" on the server's clock, ticking a few times a second. The offset is measured when a new
+ * snapshot arrives, so countdowns stay right even if the device clock is off.
+ */
+function useServerNow(serverTime: string) {
+  const [now, setNow] = useState<number | null>(null)
+  useEffect(() => {
+    const offset = Date.parse(serverTime) - Date.now()
+    const tick = () => setNow(Date.now() + offset)
+    const first = setTimeout(tick, 0)
+    const timer = setInterval(tick, 250)
+    return () => {
+      clearTimeout(first)
+      clearInterval(timer)
+    }
+  }, [serverTime])
+  return now ?? Date.parse(serverTime)
+}
+
+function roundLabel(round: number, roundCount: number) {
+  return round === roundCount - 1 ? 'Final' : `Round ${round + 1} of ${roundCount}`
+}
+
+function CurrentMatchup({
+  snapshot,
+  names,
+  token,
+  onChanged,
+}: {
+  snapshot: RoomSnapshot
+  names: Map<string, string>
+  token: string
+  onChanged: () => void
+}) {
+  const tournament = snapshot.tournament!
+  const current = tournament.current!
+  const matchup = tournament.rounds.flat().find((m) => m.id === current.matchup_id)!
+  const now = useServerNow(snapshot.server_time)
+  const startsIn = Math.ceil((Date.parse(current.starts_at) - now) / 1000)
+  const endsIn = Math.max(0, Math.ceil((Date.parse(current.ends_at) - now) / 1000))
+  const open = startsIn <= 0 && endsIn > 0
+  const canVote = open && current.can_vote
+
+  const vote = useMutation({
+    mutationFn: (contenderId: string) => api.castVote(snapshot.code, token, matchup.id, contenderId),
+    onSuccess: onChanged,
+  })
+  const close = useMutation({
+    mutationFn: () => api.closeMatchup(snapshot.code, token, matchup.id),
+    onSuccess: onChanged,
+  })
+
+  const sides = [matchup.contender_a_id!, matchup.contender_b_id!]
+  useEffect(() => {
+    if (!canVote) return
+    const onKey = (event: KeyboardEvent) => {
+      if (event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement) return
+      if (event.key === 'ArrowLeft' || event.key === '1') vote.mutate(sides[0])
+      if (event.key === 'ArrowRight' || event.key === '2') vote.mutate(sides[1])
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  })
+
+  const voted = new Set(current.voted_participant_ids)
+  return (
+    <section aria-label="Current matchup" className="rounded-lg border border-zinc-700 bg-zinc-900 p-4">
+      <p className="text-center text-sm uppercase tracking-widest text-zinc-400">
+        {roundLabel(matchup.round, tournament.rounds.length)}
+      </p>
+      {current.phase === 'revote' && (
+        <p className="mt-1 text-center font-bold text-amber-400">
+          Tie {matchup.votes_a}–{matchup.votes_b}! Sudden-death revote
+        </p>
+      )}
+      <div className="mt-4 grid grid-cols-[1fr_auto_1fr] items-center gap-3">
+        {sides.map((id, i) => (
+          <VoteButton
+            key={id}
+            name={names.get(id) ?? '?'}
+            selected={current.my_vote === id}
+            disabled={!canVote || vote.isPending}
+            onClick={() => vote.mutate(id)}
+            className={i === 0 ? 'order-1' : 'order-3'}
+          />
+        ))}
+        <span className="order-2 text-2xl font-black text-zinc-500">VS</span>
+      </div>
+      <div className="mt-4 flex flex-wrap items-center justify-between gap-2 text-sm text-zinc-400">
+        <span>
+          {startsIn > 0 ? `Voting opens in ${startsIn}s` : `${endsIn}s left`}
+        </span>
+        <span>
+          {voted.size}/{current.eligible_count} voted
+        </span>
+      </div>
+      <ul aria-label="Votes cast" className="mt-2 flex flex-wrap gap-2">
+        {snapshot.participants.map((p) => (
+          <li
+            key={p.id}
+            className={`rounded px-2 py-0.5 text-xs ${voted.has(p.id) ? 'bg-emerald-500 text-zinc-950' : 'bg-zinc-800 text-zinc-500'}`}
+          >
+            {p.nickname}
+          </li>
+        ))}
+      </ul>
+      {!current.can_vote && (
+        <p className="mt-3 text-sm text-zinc-400">You joined after this matchup opened. You can vote in the next one.</p>
+      )}
+      {snapshot.me.is_host && (
+        <button type="button" className={`${subtleButtonClass} mt-3`} onClick={() => close.mutate()}>
+          End voting now
+        </button>
+      )}
+      <ErrorMessage error={vote.error ?? close.error} />
+    </section>
+  )
+}
+
+function VoteButton({
+  name,
+  selected,
+  disabled,
+  onClick,
+  className,
+}: {
+  name: string
+  selected: boolean
+  disabled: boolean
+  onClick: () => void
+  className: string
+}) {
+  return (
+    <button
+      type="button"
+      aria-label={`Vote for ${name}`}
+      aria-pressed={selected}
+      disabled={disabled}
+      onClick={onClick}
+      className={`${buttonClass} ${className} min-h-24 text-lg ${selected ? 'ring-4 ring-emerald-400' : ''}`}
+    >
+      {name}
+    </button>
+  )
+}
+
+function LastResult({ tournament, names }: { tournament: Tournament; names: Map<string, string> }) {
+  const last = tournament.rounds
+    .flat()
+    .filter((m) => m.status === 'decided' && !m.is_bye)
+    .at(-1)
+  if (!last) return null
+
+  const winnerIsA = last.winner_id === last.contender_a_id
+  const winner = names.get(last.winner_id!)
+  const loser = names.get((winnerIsA ? last.contender_b_id : last.contender_a_id)!)
+  const [won, lost] = winnerIsA ? [last.votes_a, last.votes_b] : [last.votes_b, last.votes_a]
+  return (
+    <p className="text-center text-zinc-300">
+      {last.outcome === 'coin_flip'
+        ? `${winner} beat ${loser} on a coin flip`
+        : `${winner} beat ${loser} ${won}–${lost}`}
+    </p>
+  )
+}
+
+function Bracket({ tournament, names }: { tournament: Tournament; names: Map<string, string> }) {
+  const roundCount = tournament.rounds.length
+  return (
+    <section aria-label="Bracket" className="overflow-x-auto">
+      <div className="flex gap-4">
+        {tournament.rounds.map((matchups, round) => (
+          <div key={round} className="flex min-w-40 flex-1 flex-col justify-around gap-3">
+            <h3 className="text-xs uppercase tracking-widest text-zinc-500">
+              {round === roundCount - 1 ? 'Final' : `Round ${round + 1}`}
+            </h3>
+            {matchups.map((m) => (
+              <BracketMatchup key={m.id} matchup={m} names={names} />
+            ))}
+          </div>
+        ))}
+      </div>
+    </section>
+  )
+}
+
+function BracketMatchup({ matchup, names }: { matchup: MatchupOut; names: Map<string, string> }) {
+  const side = (id: string | null, votes: number) => {
+    if (!id) return <span className="text-zinc-600">{matchup.is_bye ? 'bye' : 'TBD'}</span>
+    const won = matchup.winner_id === id
+    return (
+      <span className={`flex justify-between gap-2 ${won ? 'font-bold text-zinc-100' : 'text-zinc-400'}`}>
+        <span>{names.get(id)}</span>
+        {matchup.outcome === 'votes' && <span>{votes}</span>}
+      </span>
+    )
+  }
+  return (
+    <div
+      className={`rounded border px-2 py-1 text-sm ${
+        matchup.status === 'voting' || matchup.status === 'revote' ? 'border-amber-400' : 'border-zinc-800'
+      }`}
+    >
+      {side(matchup.contender_a_id, matchup.votes_a)}
+      {side(matchup.contender_b_id, matchup.votes_b)}
+      {matchup.outcome === 'coin_flip' && <span className="text-xs text-zinc-500">coin flip</span>}
+    </div>
+  )
+}

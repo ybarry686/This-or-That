@@ -5,6 +5,7 @@ import { ApiError, api, type RoomSnapshot } from '../api/client'
 import { useRoomEvents } from '../realtime'
 import type { StoredSession } from '../session'
 import HostPanel from './HostPanel'
+import Tournament from './Tournament'
 import { Card, ErrorMessage, Page, buttonClass, inputClass, subtleButtonClass } from './ui'
 
 type Props = { code: string; session: StoredSession; onSessionRejected: () => void }
@@ -40,6 +41,14 @@ export default function Lobby({ code, session, onSessionRejected }: Props) {
   }
 
   const snapshot = room.data
+  if (snapshot.status !== 'lobby' && snapshot.tournament) {
+    return (
+      <Page>
+        <RoomHeader snapshot={snapshot} />
+        <Tournament snapshot={snapshot} token={session.token} onChanged={refresh} />
+      </Page>
+    )
+  }
   return (
     <Page>
       <RoomHeader snapshot={snapshot} />
