@@ -17,8 +17,8 @@ This or That is a real-time multiplayer website where a group settles a decision
 ## Current Status
 - Product discovery completed (grill-me session); decisions are recorded in SPEC.md v0.2 §15.
 - Build plan in PLAN.md (M0–M4, v2). See PLAN.md for detailed status.
-- M0 (scaffold), M1 (tournament engine), M2 (rooms, identity, lobby), M3 (live voting) done and on `main`.
-- Next: M4 (arcade polish & results), once approved.
+- v1 complete: M0 (scaffold), M1 (tournament engine), M2 (rooms, identity, lobby), M3 (live voting), M4 (arcade polish & results) done and on `main`.
+- Next: v2 (tiebreaker mini-games, images, public rooms, presenter view, hosting) — needs planning and owner approval.
 
 ## Stack (decided)
 - **Backend** (`backend/`): Python, FastAPI (REST + native WebSockets), SQLAlchemy 2, Alembic, PostgreSQL, Pydantic. Managed with `uv`; tests with pytest.
@@ -39,6 +39,7 @@ Run from the repo root unless noted.
 | Frontend deps | `cd frontend && pnpm install` |
 | Frontend dev server | `cd frontend && pnpm dev` (proxies `/api/*` → `http://localhost:8000`) |
 | Frontend tests / lint / types / build | `cd frontend && pnpm test`, `pnpm lint`, `pnpm typecheck`, `pnpm build` |
+| End-to-end (needs the stack running) | `docker compose up --build -d` then `cd frontend && pnpm e2e` (first time: `pnpm exec playwright install chromium`); screenshots land in `frontend/test-results/screens/` |
 | Regenerate API types after backend API changes | `cd frontend && pnpm gen:api` (commit `src/api/schema.d.ts`) |
 
 Backend config comes from env vars / `backend/.env` (see `backend/.env.example`).
@@ -61,11 +62,14 @@ Backend config comes from env vars / `backend/.env` (see `backend/.env.example`)
 - `backend/src/app/realtime/` — `hub` (in-process socket registry, broadcast, timers) and `routes` (room WebSocket, presence, lobby host hand-off).
 - `backend/src/app/tournament/` — `service` (start, vote, close phase, advance the bracket via the engine; returns events), `snapshot` (tournament section of the snapshot), `timers` (one deadline timer per room, re-synced from the DB after every change; disconnect re-check; startup recovery), `routes`.
 - `backend/src/app/engine/` — pure tournament engine (`normalize`, `bracket`, `tally`).
+- `backend/src/app/rooms/cleanup.py` — retention (idle lobbies expire after 24 h; finished/expired rooms deleted after 30 days), run hourly from `main.py`'s lifespan.
 - `backend/src/app/security.py` (tokens, hashing), `errors.py` (domain errors → HTTP status).
 - `backend/tests/` — `engine/` unit tests; `api/` REST + WebSocket tests (need Postgres: `docker compose up -d postgres`); `conftest.py` creates/truncates the `this_or_that_test` DB.
 - `backend/migrations/` — Alembic revisions.
 - `frontend/src/api/` — typed fetch client and generated `schema.d.ts`; `session.ts` (localStorage identity); `realtime.ts` (WS hook with reconnect).
-- `frontend/src/pages/` — `Landing`, `RoomPage` (join form or room), `Recover`; `components/` — `Lobby` (loads the room; lobby view or `Tournament`), `HostPanel` (start, curation, settings), `Tournament` (matchup, bracket, champion), `ui`.
+- `frontend/src/settings.ts` (per-device sound/music/CRT/motion settings), `audio.ts` (Web Audio synth: cues + chiptune), `announcements.ts` (state-driven call-outs); `index.css` holds the theme tokens and CRT overlay.
+- `frontend/src/pages/` — `Landing`, `RoomPage` (join form or room), `Recover`, `Results` (public results); `components/` — `Lobby` (loads the room; lobby view or `Tournament`), `HostPanel` (start, curation, settings), `Tournament` (matchup, bracket, champion, post-game), `Announcer`, `SettingsBar`, `ui`.
+- `frontend/e2e/` — Playwright game test (`game.spec.ts`) and warm-up `global-setup.ts`.
 - `frontend/src/test/helpers.tsx` — `mockApi` fetch stub, `FakeWebSocket`, `renderRoute`, `makeSnapshot`, `makeTournamentSnapshot`.
 
 ## Engineering Conventions
