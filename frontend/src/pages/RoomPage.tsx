@@ -8,6 +8,11 @@ import { clearSession, loadSession, saveSession, type StoredSession } from '../s
 
 export default function RoomPage() {
   const code = (useParams().code ?? '').toUpperCase()
+  // Keyed by code so moving to another room (e.g. a rematch) starts from that room's identity.
+  return <Room key={code} code={code} />
+}
+
+function Room({ code }: { code: string }) {
   const [session, setSession] = useState<StoredSession | null>(() => loadSession(code))
 
   if (!session) {
