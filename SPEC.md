@@ -2,7 +2,7 @@
 
 **Status:** Draft  
 **Product name:** This or That  
-**Specification version:** 0.2
+**Specification version:** 0.3
 
 ## 1. Product Overview
 
@@ -89,8 +89,9 @@ All settings lock when the tournament starts. The host can still force-close the
 `lobby` → `in_progress` → `finished` (or `expired`).
 
 - Unstarted lobbies idle for **24 hours** expire.
-- A finished room becomes a **read-only results page** (bracket and vote tallies) at a shareable URL, retained for **30 days**.
-- **Play again** creates a new room with the same settings and invites the same participants.
+- A finished room becomes a **read-only results page** (bracket and vote tallies) at `/r/<code>/results`, viewable by **anyone with the room code** (finished rooms can no longer be joined, so the code becomes the results link). Retained for **30 days** after the champion is crowned.
+- **Play again** (host only) creates a new lobby with the same question, description and settings, with the host already in it. Everyone still on the old room gets a **Join the rematch** button that joins with their current nickname in one click. One rematch per room.
+- Retention runs hourly: idle lobbies (no change for 24 h) become `expired`; finished rooms 30 days after finishing, and expired rooms 30 days after expiring, are deleted.
 
 ## 5. Submission Collection
 
@@ -173,9 +174,9 @@ The snapshot includes `server_time` so clients can render countdowns correctly e
 
 ### Visual identity: retro arcade
 - Pixel/arcade font for headings; a readable font for body text.
-- CRT glow and scanline effects (can be turned off).
+- CRT glow, scanline and vignette effects (on by default, can be turned off).
 - Fighting-game framing: "ROUND 1 — FIGHT!", VS slam transitions, KO-style tally reveals, a champion reveal with confetti and fanfare.
-- 8-bit sound effects and optional chiptune background music.
+- 8-bit sound effects and optional chiptune background music, synthesized in the browser with the Web Audio API (no audio files to license or fail to load).
 
 ### Core screens
 1. Landing page and room creation.
@@ -187,7 +188,8 @@ The snapshot includes `server_time` so clients can render countdowns correctly e
 7. Champion reveal and read-only results page.
 
 ### Accessibility and audio
-- Audio is **muted by default**; the user enables it.
+- Audio is **muted by default**; the user enables it. Browsers require a gesture, so audio starts from the toggle click (or the first tap on a later visit).
+- A settings bar on every screen toggles sound, music, CRT effect and reduced motion; choices are stored on the device.
 - `prefers-reduced-motion` is honored: slams, shakes, and flicker become simple fades.
 - Full keyboard support for voting and host actions.
 - Usable mobile layouts.
@@ -267,5 +269,7 @@ Settled during planning (v0.2):
 | Images | Text-only in v1 | §5, §13 |
 | Visual identity | Retro arcade | §10 |
 | Sound & motion | Muted by default; reduced motion honored; CRT toggle | §10 |
-| Results & retention | Read-only results 30 days; idle lobbies expire after 24 h | §4 |
+| Results & retention | Public read-only results by room code, 30 days; idle lobbies expire after 24 h | §4 |
+| Rematch | Host-only Play again; others join with one click, same nickname | §4 |
+| Audio source | Synthesized in the browser (Web Audio) | §10 |
 | Stack & deploy | FastAPI + Postgres; Vite React TS; Docker Compose | §11 |

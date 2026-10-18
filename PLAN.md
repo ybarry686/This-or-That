@@ -2,7 +2,7 @@
 
 Product requirements live in [SPEC.md](SPEC.md). This file tracks delivery order and status. Each milestone must meet the Definition of Done (SPEC §14) before the next one starts.
 
-**Current milestone:** M4 — not started (M0–M3 done)
+**Current milestone:** v1 complete (M0–M4 done). Next: v2 planning, once approved.
 
 ## M0 — Scaffold
 **Goal:** an empty but runnable monorepo.
@@ -79,14 +79,20 @@ Exhaustive parametrized tests over N = 2–64 stand in for property-based tests 
 ## M4 — Arcade polish & results
 **Goal:** the retro arcade experience (SPEC §10) and post-game features (SPEC §4 lifecycle).
 
-- [ ] Visual system: arcade heading font, body font, palette, CRT effect with toggle.
-- [ ] Animations: ROUND/FIGHT intros, VS slam, KO tally reveal, bracket progression, champion confetti.
-- [ ] 8-bit SFX and chiptune, muted by default, with an audio toggle.
-- [ ] Reduced-motion variants, keyboard voting, mobile layouts, graceful asset failure.
-- [ ] Read-only results page (30-day retention); idle lobby expiry (24 h); Play again.
-- [ ] Playwright end-to-end test of a full game.
+- [x] Visual system: arcade heading font, body font, palette, CRT effect with toggle.
+- [x] Animations: ROUND/FIGHT intros, VS slam, KO tally reveal, bracket progression, champion confetti.
+- [x] 8-bit SFX and chiptune, muted by default, with an audio toggle.
+- [x] Reduced-motion variants, keyboard voting, mobile layouts, graceful asset failure.
+- [x] Read-only results page (30-day retention); idle lobby expiry (24 h); Play again.
+- [x] Playwright end-to-end test of a full game.
 
 **Acceptance:** a full game is playable on mobile and desktop with the motion/audio settings honored; the results link works after the game ends.
+
+**Status:** ✅ Done (2026-10-17) — 330 backend tests, 92 frontend tests, and a Playwright game test passing. The Playwright test plays a full game in two real browsers (desktop + phone-sized) against the Docker stack: create, join, live presence, submit, start, round call-out, vote by click and keyboard, early close, champion reveal, public results page, Play again, Join the rematch. It also runs in CI against a freshly built stack. Sound was verified structurally (notes scheduled and stopped), not listened to.
+- Backend: `GET /rooms/{code}/results`, `POST /rooms/{code}/rematch` (+ `rematch_created` event), room columns `finished_at`/`rematch_code` (migration `0004`), `app/rooms/cleanup.py` run hourly from the app lifespan.
+- Frontend: theme tokens + CRT overlay in `index.css` (Press Start 2P headings, Inter body, self-hosted via Fontsource); `settings.ts` + `SettingsBar` (sound, music, CRT, reduce motion — stored per device); `announcements.ts` + `Announcer` (state-driven call-outs and confetti); `audio.ts` (Web Audio synth); `pages/Results.tsx`; post-game actions in `Tournament.tsx`; `e2e/` Playwright spec with a warm-up global setup.
+- Fixed along the way: the room WebSocket lost the `participant_connected` event and leaked a registration when a client vanished before reading its welcome (React StrictMode double-mount through the proxy); regression test added.
+- Choices made during build (also in SPEC): results are public by room code; Play again is host-only and others join with one click; sound is synthesized in the browser; a manual reduce-motion toggle can override the system setting.
 
 ## v2 — Later
 - Tiebreaker mini-games: reaction-time, persuasion (SPEC §8).

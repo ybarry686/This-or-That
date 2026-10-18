@@ -23,7 +23,7 @@ A host creates a room around a question and shares a 6-character code. Friends j
 
 The backend is authoritative: clients only *ask* to do things, and the server decides outcomes, so everyone always sees the same bracket, the same votes, and the same winner.
 
-> **Project status:** milestones **M0–M3** are complete — a full game is playable end to end: rooms, guest identity, the lobby, live head-to-head voting, ties, and the champion. The retro-arcade presentation and results page (M4) are next. See [Roadmap](#roadmap).
+> **Project status:** **v1 is complete** (milestones M0–M4): rooms, guest identity, the lobby, live head-to-head voting, ties, the champion reveal, the retro-arcade presentation, shareable results, and rematches. v2 ideas are on the [Roadmap](#roadmap).
 
 ## Key Features
 
@@ -42,12 +42,16 @@ The backend is authoritative: clients only *ask* to do things, and the server de
 - **Ties that never stall** — a 15-second sudden-death revote, then a server-side coin flip
 - **Bracket and champion** — the bracket fills in as winners advance, with the last result ("Pizza beat Tacos 2–1") and a champion at the end
 - **Survives restarts** — deadlines are stored in the database and re-armed when the server starts
+- **Retro arcade presentation** — pixel headings, neon red-vs-blue corners, CRT scanlines, "ROUND 1 — FIGHT!" and "K.O.!" call-outs, VS slams, sudden-death and coin-flip reveals, and a confetti champion reveal
+- **8-bit sound** — synthesized effects and a chiptune loop, muted until you turn them on
+- **Accessible by default** — honors reduced-motion (or toggle it yourself), keyboard voting, visible focus, works on phones
+- **Shareable results** — anyone with the room code can open `/r/CODE/results` for 30 days
+- **Rematch** — the host hits Play again and everyone hops into a new lobby with one click
 
-**Coming next**
+**Ideas for v2**
 
-- Retro arcade look — pixel headings, CRT glow, VS slams, 8-bit sound (muted by default), reduced-motion support (M4)
-- KO-style reveals, VS transitions, and a champion celebration (M4)
-- Shareable read-only results page (M4)
+- Tiebreaker mini-games (reaction-time, persuasion)
+- Image options, public rooms, and a shared presenter screen
 
 ## How a Game Works
 
@@ -166,11 +170,13 @@ All endpoints except create, join and recover require `Authorization: Bearer <pa
 | `POST` | `/rooms/{code}/start` | host | Freeze options, generate the bracket, open the first matchup |
 | `POST` | `/rooms/{code}/votes` | eligible participant | Cast or change a vote on the open matchup |
 | `POST` | `/rooms/{code}/matchups/{id}/close` | host | End the open vote (or revote) now |
+| `GET` | `/rooms/{code}/results` | anyone | Read-only results of a finished game |
+| `POST` | `/rooms/{code}/rematch` | host | Create a rematch lobby with the same settings |
 | `WS` | `/rooms/{code}/ws?token=…` | participant | Real-time events |
 
 Interactive docs are served at **http://localhost:8000/docs** while the API is running.
 
-**WebSocket events:** `welcome`, `participant_joined`, `participant_connected`, `participant_disconnected`, `settings_changed`, `submissions_changed`, `host_changed`, `tournament_started`, `matchup_opened`, `vote_cast`, `revote_started`, `matchup_decided`, `round_started`, `champion_crowned`. Close codes: `4401` invalid token, `4404` unknown room.
+**WebSocket events:** `welcome`, `participant_joined`, `participant_connected`, `participant_disconnected`, `settings_changed`, `submissions_changed`, `host_changed`, `tournament_started`, `matchup_opened`, `vote_cast`, `revote_started`, `matchup_decided`, `round_started`, `champion_crowned`, `rematch_created`. Close codes: `4401` invalid token, `4404` unknown room.
 
 **Room settings**
 
@@ -232,6 +238,12 @@ cd backend && uv run pytest
 # Frontend: component, page and client tests (fetch + WebSocket mocked)
 cd frontend && pnpm test
 
+# End-to-end: two real browsers play a full game against the running stack
+docker compose up --build -d
+cd frontend
+pnpm exec playwright install chromium   # first time only
+pnpm e2e
+
 # Quality checks
 cd backend  && uv run ruff check . && uv run ruff format --check .
 cd frontend && pnpm lint && pnpm typecheck && pnpm build
@@ -239,10 +251,11 @@ cd frontend && pnpm lint && pnpm typecheck && pnpm build
 
 | Suite | Tests | Covers |
 |---|---|---|
-| Backend | 312 | tournament engine (all sizes 2–64), permissions, validation, snapshots, events, presence, host hand-off, voting, ties, champion, deadlines, restart recovery, migrations, parallel submissions/votes/closes |
-| Frontend | 47 | create/join flows, lobby, host panel, start, voting (click + keyboard), countdowns, revote, bracket, champion, session storage, API client, WebSocket refresh and reconnect |
+| Backend | 330 | tournament engine (all sizes 2–64), permissions, validation, snapshots, events, presence, host hand-off, voting, ties, champion, deadlines, restart recovery, results, rematch, retention, migrations, parallel submissions/votes/closes |
+| Frontend | 92 | create/join flows, lobby, host panel, start, voting (click + keyboard), countdowns, revote, bracket, champion, call-outs, confetti, reduced motion, settings, audio, results, rematch, session storage, API client, WebSocket refresh and reconnect |
+| End-to-end | 1 game | two browsers (desktop + phone): create, join, presence, submit, start, vote, early close, champion, results page, rematch |
 
-GitHub Actions runs every suite (with a PostgreSQL service) on each push.
+GitHub Actions runs every suite on each push: backend tests against a PostgreSQL service, frontend checks, and the Playwright game against a freshly built Docker stack (screenshots are uploaded as an artifact).
 
 ## Tech Stack
 
@@ -251,12 +264,15 @@ GitHub Actions runs every suite (with a PostgreSQL service) on each push.
 | Frontend | React 19 + TypeScript + Vite | UI |
 | Frontend | React Router, TanStack Query | Routing, server state |
 | Frontend | Tailwind CSS | Styling |
+| Frontend | Motion | Call-outs, VS slams, confetti |
+| Frontend | Fontsource (Press Start 2P, Inter) | Self-hosted fonts |
+| Frontend | Web Audio API | Synthesized 8-bit sound |
 | Backend | FastAPI | REST API + native WebSockets |
 | Backend | SQLAlchemy 2 + Alembic | ORM + migrations |
 | Backend | Pydantic | Validation, OpenAPI schema |
 | Data | PostgreSQL 17 | Source of truth |
 | Contracts | openapi-typescript | Frontend types generated from the API schema |
-| Tooling | uv, pnpm, Ruff, oxlint, pytest, Vitest | Packages, linting, tests |
+| Tooling | uv, pnpm, Ruff, oxlint, pytest, Vitest, Playwright | Packages, linting, tests |
 | Infra | Docker Compose, GitHub Actions | Local stack, CI |
 
 ## Project Structure
@@ -291,10 +307,14 @@ This-or-That/
 │   ├── tests/                   # engine/ unit tests, api/ integration tests
 │   └── scripts/export_openapi.py
 ├── frontend/
+│   ├── e2e/                     # Playwright game test
 │   └── src/
 │       ├── api/                 # Typed client + generated schema.d.ts
-│       ├── pages/               # Landing, RoomPage, Recover
-│       ├── components/          # Lobby, HostPanel, Tournament, shared UI
+│       ├── pages/               # Landing, RoomPage, Recover, Results
+│       ├── components/          # Lobby, HostPanel, Tournament, Announcer, SettingsBar, shared UI
+│       ├── announcements.ts     # State-driven arcade call-outs
+│       ├── audio.ts             # Web Audio synth (effects + chiptune)
+│       ├── settings.ts          # Sound, music, CRT, motion settings
 │       ├── realtime.ts          # WebSocket hook with reconnect
 │       ├── session.ts           # Per-room identity in localStorage
 │       └── test/                # Fetch/WebSocket fakes, render helpers
@@ -313,7 +333,7 @@ This-or-That/
 | **M1** | Tournament engine: normalization, bracket, tally | ✅ Done |
 | **M2** | Rooms, guest identity, lobby, real-time sync | ✅ Done |
 | **M3** | Live voting, matchup flow, ties, champion | ✅ Done |
-| **M4** | Retro arcade UI, animations, sound, results page | ⏳ Next |
+| **M4** | Retro arcade UI, animations, sound, results page, rematch | ✅ Done |
 | **v2** | Tiebreaker mini-games, image options, public rooms, presenter view | Later |
 
 Details and acceptance criteria are in [PLAN.md](PLAN.md).
