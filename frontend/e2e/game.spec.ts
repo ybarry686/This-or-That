@@ -53,7 +53,13 @@ test('two players play a full game from lobby to champion', async ({ browser }) 
   // Everyone votes, so the matchup closes early and the champion is crowned on both screens.
   await host.getByRole('button', { name: 'Vote for Pizza' }).click()
   await expect(host.getByText('1/2 voted')).toBeVisible()
-  await guest.keyboard.press('ArrowLeft')
+  // The bracket is shuffled, so find which side Pizza is on before using the arrow keys.
+  const leftOption = await guest
+    .getByRole('region', { name: 'Current matchup' })
+    .getByRole('button', { name: /^Vote for / })
+    .first()
+    .getAttribute('aria-label')
+  await guest.keyboard.press(leftOption === 'Vote for Pizza' ? 'ArrowLeft' : 'ArrowRight')
   for (const page of [host, guest]) {
     await expect(page.getByRole('heading', { name: /champion/i })).toContainText('Pizza')
   }
@@ -62,6 +68,21 @@ test('two players play a full game from lobby to champion', async ({ browser }) 
   await expect(host.getByText(/pizza beat tacos 2–0/i)).toBeVisible()
   await shot(host, '06-champion-host')
   await shot(guest, '07-champion-guest-mobile')
+
+  // Anyone with the code can open the results page.
+  const viewer = await browser.newPage()
+  await viewer.goto(`/r/${code}/results`)
+  await expect(viewer.getByRole('heading', { name: /champion/i })).toContainText('Pizza')
+  await shot(viewer, '08-results-page')
+  await viewer.close()
+
+  // The host starts a rematch; the guest hops in with one click.
+  await host.getByRole('button', { name: 'Play again' }).click()
+  await expect(host.getByText(/save your host recovery link/i)).toBeVisible()
+  await guest.getByRole('button', { name: 'Join the rematch' }).click()
+  await expect(host.getByLabel('Sam is online')).toBeVisible()
+  await expect(guest.getByRole('textbox', { name: 'Your option' })).toBeVisible()
+  await shot(host, '09-rematch-lobby')
 
   await hostContext.close()
   await guestContext.close()

@@ -4,6 +4,7 @@ import { BrowserRouter, Route, Routes } from 'react-router'
 import SettingsBar from './components/SettingsBar'
 import Landing from './pages/Landing'
 import Recover from './pages/Recover'
+import Results from './pages/Results'
 import RoomPage from './pages/RoomPage'
 import { useReducedMotion } from './settings'
 
@@ -17,6 +18,7 @@ export function AppRoutes() {
         <Route path="/" element={<Landing />} />
         <Route path="/r/:code" element={<RoomPage />} />
         <Route path="/r/:code/recover" element={<Recover />} />
+        <Route path="/r/:code/results" element={<Results />} />
       </Routes>
     </MotionConfig>
   )

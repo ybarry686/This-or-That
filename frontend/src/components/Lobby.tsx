@@ -42,6 +42,16 @@ export default function Lobby({ code, session, onSessionRejected }: Props) {
   }
 
   const snapshot = room.data
+  if (snapshot.status === 'expired') {
+    return (
+      <Page>
+        <RoomHeader snapshot={snapshot} />
+        <Card>
+          <p className="text-center">This room expired after 24 hours without activity.</p>
+        </Card>
+      </Page>
+    )
+  }
   const playing = snapshot.status !== 'lobby' && snapshot.tournament !== null
   return (
     <Page>

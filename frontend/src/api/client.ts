@@ -11,6 +11,7 @@ export type CreateRoomResponse = Schemas['CreateRoomResponse']
 export type CreateRoomRequest = Pick<Schemas['CreateRoomRequest'], 'title' | 'nickname'> &
   Partial<Schemas['CreateRoomRequest']>
 export type UpdateRoomRequest = Schemas['UpdateRoomRequest']
+export type Results = Schemas['ResultsOut']
 
 const API_BASE = '/api'
 
@@ -101,6 +102,9 @@ export const api = {
       `${room(code)}/matchups/${encodeURIComponent(matchupId)}/close`,
       { token },
     ),
+  getResults: (code: string) => request<Results>('GET', `${room(code)}/results`),
+  createRematch: (code: string, token: string) =>
+    request<CreateRoomResponse>('POST', `${room(code)}/rematch`, { token }),
   recoverHost: (code: string, recoveryToken: string) =>
     request<SessionResponse>('POST', `${room(code)}/host/recover`, {
       body: { recovery_token: recoveryToken },

@@ -1,9 +1,11 @@
 import { useMutation } from '@tanstack/react-query'
 import { motion } from 'motion/react'
 import { useEffect, useMemo, useState } from 'react'
+import { Link, useNavigate } from 'react-router'
 import { api, type RoomSnapshot } from '../api/client'
 import { audio } from '../audio'
-import { Card, ErrorMessage, subtleButtonClass } from './ui'
+import { saveSession } from '../session'
+import { Card, ErrorMessage, buttonClass, subtleButtonClass } from './ui'
 
 type Tournament = NonNullable<RoomSnapshot['tournament']>
 type MatchupOut = Tournament['rounds'][number][number]
@@ -29,9 +31,77 @@ export default function Tournament({ snapshot, token, onChanged }: Props) {
       {tournament.current && (
         <CurrentMatchup snapshot={snapshot} names={names} token={token} onChanged={onChanged} />
       )}
+      {tournament.champion_id && <PostGame snapshot={snapshot} token={token} />}
       <LastResult tournament={tournament} names={names} />
       <Bracket tournament={tournament} names={names} />
     </>
+  )
+}
+
+/** Share the results and line up a rematch (SPEC §4). */
+function PostGame({ snapshot, token }: { snapshot: RoomSnapshot; token: string }) {
+  const navigate = useNavigate()
+  const resultsPath = `/r/${snapshot.code}/results`
+  const rematch = snapshot.rematch_code
+
+  const playAgain = useMutation({
+    mutationFn: () => api.createRematch(snapshot.code, token),
+    onSuccess: (created) => {
+      saveSession(created.code, { participantId: created.participant_id, token: created.token })
+      navigate(`/r/${created.code}`, { state: { recoveryToken: created.host_recovery_token } })
+    },
+  })
+  const joinRematch = useMutation({
+    mutationFn: () => api.joinRoom(rematch!, snapshot.me.nickname),
+    onSuccess: (joined) => {
+      saveSession(joined.code, { participantId: joined.participant_id, token: joined.token })
+      navigate(`/r/${joined.code}`)
+    },
+  })
+
+  return (
+    <Card>
+      <div className="flex flex-wrap items-center justify-center gap-3">
+        <Link to={resultsPath} className={subtleButtonClass}>
+          View results page
+        </Link>
+        <button
+          type="button"
+          className={subtleButtonClass}
+          onClick={() =>
+            navigator.clipboard?.writeText(`${window.location.origin}${resultsPath}`).catch(() => {})
+          }
+        >
+          Copy results link
+        </button>
+      </div>
+      <div className="mt-4 text-center">
+        {snapshot.me.is_host && !rematch && (
+          <button
+            type="button"
+            className={buttonClass}
+            disabled={playAgain.isPending}
+            onClick={() => playAgain.mutate()}
+          >
+            Play again
+          </button>
+        )}
+        {rematch && (
+          <button
+            type="button"
+            className={buttonClass}
+            disabled={joinRematch.isPending}
+            onClick={() => joinRematch.mutate()}
+          >
+            Join the rematch
+          </button>
+        )}
+        {!snapshot.me.is_host && !rematch && (
+          <p className="text-sm text-dim">Waiting for the host to start a rematch…</p>
+        )}
+      </div>
+      <ErrorMessage error={playAgain.error ?? joinRematch.error} />
+    </Card>
   )
 }
 
@@ -228,7 +298,7 @@ function LastResult({ tournament, names }: { tournament: Tournament; names: Map<
   )
 }
 
-function Bracket({ tournament, names }: { tournament: Tournament; names: Map<string, string> }) {
+export function Bracket({ tournament, names }: { tournament: Tournament; names: Map<string, string> }) {
   const roundCount = tournament.rounds.length
   return (
     <section aria-label="Bracket" className="overflow-x-auto">
