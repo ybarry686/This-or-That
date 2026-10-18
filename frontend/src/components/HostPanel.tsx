@@ -34,7 +34,7 @@ function StartTournament({ snapshot, token, onChanged }: Props) {
       >
         Start tournament
       </button>
-      <p className="mt-2 text-center text-sm text-zinc-400">
+      <p className="mt-2 text-center text-sm text-dim">
         {ready
           ? 'Submissions close when the tournament starts.'
           : `Need at least ${MIN_OPTIONS} options to start.`}
@@ -60,8 +60,8 @@ function AllOptions({ snapshot, token, onChanged }: Props) {
 
   return (
     <Card>
-      <h2 className="mb-1 font-bold">All options</h2>
-      <p className="mb-3 text-sm text-zinc-400">
+      <h2 className="mb-3 font-arcade text-xs leading-relaxed tracking-wider text-coin uppercase">All options</h2>
+      <p className="mb-3 text-sm text-dim">
         Only you can see these. Merge near-duplicates or remove anything off-topic.
       </p>
       <ul aria-label="All options" className="flex flex-col gap-3">
@@ -70,7 +70,7 @@ function AllOptions({ snapshot, token, onChanged }: Props) {
           return (
             <li key={c.key} className="flex flex-wrap items-center gap-2">
               <span className="font-semibold">{c.display_text}</span>
-              <span className="text-xs text-zinc-500">by {submitters.join(', ')}</span>
+              <span className="text-xs text-dim/80">by {submitters.join(', ')}</span>
               <span className="ml-auto flex items-center gap-2">
                 {contenders.length > 1 && (
                   <select
@@ -102,7 +102,7 @@ function AllOptions({ snapshot, token, onChanged }: Props) {
           )
         })}
       </ul>
-      {contenders.length === 0 && <p className="text-sm text-zinc-500">No options yet.</p>}
+      {contenders.length === 0 && <p className="text-sm text-dim/80">No options yet.</p>}
       <ErrorMessage error={merge.error ?? remove.error} />
     </Card>
   )
@@ -134,7 +134,7 @@ function SettingsForm({ snapshot, token, onChanged }: Props) {
 
   return (
     <Card>
-      <h2 className="mb-3 font-bold">Settings</h2>
+      <h2 className="mb-3 font-arcade text-xs leading-relaxed tracking-wider text-coin uppercase">Settings</h2>
       <form onSubmit={onSubmit} className="flex flex-col gap-3">
         <label className="flex flex-col gap-1 text-sm">
           Title

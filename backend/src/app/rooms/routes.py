@@ -163,3 +163,19 @@ def recover_host(
     issued = service.recover_host(db, code, body.recovery_token)
     _publish_host(background, issued.room)
     return schemas.SessionResponse(**_session_response(issued))
+
+
+@router.get("/{code}/results", operation_id="getResults")
+def get_results(code: str, db: DbSession) -> schemas.ResultsOut:
+    return service.get_results(db, code)
+
+
+@router.post("/{code}/rematch", status_code=status.HTTP_201_CREATED, operation_id="createRematch")
+def create_rematch(
+    code: str, token: Token, db: DbSession, background: BackgroundTasks
+) -> schemas.CreateRoomResponse:
+    room, issued, recovery_token = service.create_rematch(db, code, token)
+    _publish(background, room, "rematch_created", {"code": issued.room.code})
+    return schemas.CreateRoomResponse(
+        **_session_response(issued), host_recovery_token=recovery_token
+    )

@@ -1,1 +1,84 @@
 @import 'tailwindcss';
+
+/* Retro arcade theme (SPEC §10). Pixel font for headings only; body text stays readable. */
+@theme {
+  --font-arcade: 'Press Start 2P', ui-monospace, monospace;
+  --font-sans: 'Inter Variable', 'Inter', ui-sans-serif, system-ui, sans-serif;
+
+  --color-ink: #0a0a16;
+  --color-panel: #14142b;
+  --color-panel-hi: #1d1d3d;
+  --color-line: #2c2c5c;
+  --color-dim: #8f8fbf;
+  --color-p1: #ff3b5c;
+  --color-p2: #2ec5ff;
+  --color-coin: #ffd23f;
+  --color-go: #39ff88;
+}
+
+html {
+  color-scheme: dark;
+  min-height: 100%;
+  background:
+    radial-gradient(ellipse at top, rgb(46 197 255 / 0.12), transparent 60%),
+    radial-gradient(ellipse at bottom, rgb(255 59 92 / 0.12), transparent 60%),
+    var(--color-ink);
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  font-family: var(--font-sans);
+  color: #f2f2ff;
+}
+
+/* Glowing pixel text. */
+.arcade-glow {
+  text-shadow:
+    0 0 6px currentColor,
+    0 0 18px color-mix(in srgb, currentColor 45%, transparent);
+}
+
+/* CRT effect: scanlines, vignette and a faint flicker over everything. */
+html[data-crt='on'] body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  pointer-events: none;
+  background:
+    repeating-linear-gradient(to bottom, rgb(0 0 0 / 0.22) 0 1px, transparent 1px 3px),
+    radial-gradient(ellipse at center, transparent 60%, rgb(0 0 0 / 0.55) 100%);
+  animation: crt-flicker 4s infinite steps(1);
+}
+
+html[data-crt='on'] #root {
+  text-shadow: 0 0 1px rgb(255 255 255 / 0.25);
+}
+
+@keyframes crt-flicker {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.93;
+  }
+}
+
+/* Reduced motion: no flicker, no CSS animation beyond simple fades. */
+html[data-motion='reduced'] body::after {
+  animation: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html:not([data-motion='full']) body::after {
+    animation: none;
+  }
+}
+
+/* Visible keyboard focus everywhere. */
+:focus-visible {
+  outline: 3px solid var(--color-coin);
+  outline-offset: 2px;
+}

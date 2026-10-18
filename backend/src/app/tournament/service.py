@@ -254,6 +254,7 @@ def close_phase(room: Room, matchup: Matchup, now: datetime) -> list[Event]:
     ]
     if bracket.champion is not None:
         room.status = RoomStatus.FINISHED
+        room.finished_at = now
         events.append(("champion_crowned", room.version, {"contender_id": bracket.champion}))
         return events
 

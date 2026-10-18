@@ -4,6 +4,8 @@ Clients receive `{type, version, data}` events and refetch the REST snapshot whe
 (or detect a version gap). Client-to-server messages are ignored for now.
 """
 
+import logging
+
 import anyio
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 from fastapi.concurrency import run_in_threadpool
@@ -16,6 +18,7 @@ from app.rooms import service
 from app.tournament import timers
 
 router = APIRouter()
+logger = logging.getLogger(__name__)
 
 CLOSE_UNAUTHORIZED = 4401
 CLOSE_NOT_FOUND = 4404
@@ -65,23 +68,26 @@ async def room_socket(websocket: WebSocket, code: str, token: str | None = None)
     if await _is_host(room_id, participant_id):
         hub.cancel(_host_timer_key(room_id))
     first = hub.add(room_id, participant_id, websocket)
-    if first:
-        version, _ = await run_in_threadpool(_bump, room_id)
-    else:
-        version = await run_in_threadpool(_current_version, room_id)
-    await websocket.send_json(event("welcome", version))
-    if first:
-        await hub.broadcast(
-            room_id,
-            event("participant_connected", version, {"participant_id": participant_id}),
-            exclude=websocket,
-        )
-
+    # From here on the socket is registered, so every exit path must run the cleanup below.
     try:
+        if first:
+            version, _ = await run_in_threadpool(_bump, room_id)
+            # Tell everyone else first: this client may vanish before it reads its welcome.
+            await hub.broadcast(
+                room_id,
+                event("participant_connected", version, {"participant_id": participant_id}),
+                exclude=websocket,
+            )
+        else:
+            version = await run_in_threadpool(_current_version, room_id)
+        await websocket.send_json(event("welcome", version))
         while True:
             await websocket.receive_text()
     except WebSocketDisconnect:
         pass
+    except Exception:
+        # A client that went away mid-send; treat it like any other disconnect.
+        logger.info("Room socket for %s closed unexpectedly", participant_id, exc_info=True)
     finally:
         # Shielded so presence cleanup completes even if the handler is being cancelled.
         with anyio.CancelScope(shield=True):

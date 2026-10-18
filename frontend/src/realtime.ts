@@ -42,7 +42,9 @@ export function useRoomEvents(code: string, token: string | null, onChange: (eve
       }
     }
 
-    connect()
+    // Deferred one tick so a mount that is immediately undone (React StrictMode) never opens a
+    // throwaway connection.
+    retryTimer = setTimeout(connect, 0)
     return () => {
       stopped = true
       clearTimeout(retryTimer)
