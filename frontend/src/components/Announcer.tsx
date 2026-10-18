@@ -42,7 +42,13 @@ export default function Announcer({ tournament }: { tournament: RoomSnapshot['to
                 ? { scale: 1, rotate: 0, x: [0, -10, 10, -6, 6, 0] }
                 : { scale: 1, rotate: 0 }
             }
-            transition={{ type: 'spring', stiffness: 420, damping: 18 }}
+            transition={{
+              type: 'spring',
+              stiffness: 420,
+              damping: 18,
+              // Springs take only two keyframes, so the K.O. shake gets its own keyframed timing.
+              x: { type: 'keyframes', duration: 0.45, ease: 'easeInOut' },
+            }}
           >
             {announcement.kind === 'champion' ? (
               <>
